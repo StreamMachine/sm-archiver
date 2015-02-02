@@ -1,0 +1,21 @@
+{
+  "name": "sm-archiver",
+  "version": "0.1.0",
+  "description": "StreamMachine Archive Writer",
+  "main": "index.js",
+  "dependencies": {
+    "nconf": "^0.7.1",
+    "coffee-script": "^1.9.0",
+    "streammachine": "~0.4.0"
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "streammachine"
+  ],
+  "author": "Eric Richardson <e@ewr.is>",
+  "license": "BSD"
+}
