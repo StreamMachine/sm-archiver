@@ -1,5 +1,8 @@
-SlaveIO = require "streammachine/src/streammachine/slave/slave_io"
-Logger  = require "streammachine/src/streammachine/logger"
+SlaveIO     = require "streammachine/src/streammachine/slave/slave_io"
+Logger      = require "streammachine/src/streammachine/logger"
+
+WaveTransform = require "./wave_transform"
+_ = require "underscore"
 
 module.exports = class Archiver extends require("streammachine/src/streammachine/slave")
     constructor: (@options) ->
@@ -31,14 +34,23 @@ module.exports = class Archiver extends require("streammachine/src/streammachine
 
     class @StreamArchiver
         constructor: (@stream) ->
+            @wave_transform = new WaveTransform
+
+            @wave_transform.on "readable", =>
+                while obj = @wave_transform.read()
+                    console.log "got obj", obj.id, obj.ts
+
             # FIXME: Need to look this up on startup
             @max_id = 0
+
+            # FIXME: On startup, we need to wait until the rewind buffer is loaded before
+            # looping through segments
 
             # process snapshots to look for new segments
             @stream.source.on "hls_snapshot", (snapshot) =>
                 return false if !snapshot
 
-                for seg in snapshot.segments
+                for seg in snapshot.segments[-15..]
                     if seg.id <= @max_id
                         # do nothing
                     else
@@ -64,8 +76,14 @@ module.exports = class Archiver extends require("streammachine/src/streammachine
 
                                 meta = b.meta if !meta
 
-                            cbuf = Buffer.concat(buffers)
+                            cbuf = Buffer.concat(buffers,length)
 
-                            console.log "Buffer prepared.", stream.key, seg.id, length, duration, seg.duration
+                            obj = _.extend {}, seg,
+                                cbuf:       cbuf
+                                duration:   duration
+                                meta:       meta
 
+                            # -- generate waveform -- #
+
+                            @wave_transform.write obj
 
