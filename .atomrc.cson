@@ -1,0 +1,3 @@
+'.source.coffee':
+  'editor':
+    'tabLength': 4

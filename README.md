@@ -8,8 +8,8 @@ data up to clients it writes HLS segments to disk or S3.
 
 ## Requirements
 
-* StreamMachine 0.4.0
-* Node.js 0.10
+* StreamMachine ~> 0.7
+* Node.js
 
 ## Running
 

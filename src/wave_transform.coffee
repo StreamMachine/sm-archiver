@@ -35,10 +35,8 @@ module.exports = class WaveTransform extends require("stream").Transform
                             return false
 
                         fs.unlink info.path, (err) =>
-
-                            wavedata = JSON.parse stdout
-
-                            obj.wavedata = wavedata
+                            obj.waveform = JSON.parse stdout
+                            obj.waveform_json = stdout
                             @push obj
 
                             cb()
