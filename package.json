@@ -1,15 +1,24 @@
 {
   "name": "sm-archiver",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "StreamMachine Archive Writer",
+  "repo": "git@github.com:StreamMachine/sm-archiver.git",
+  "homepage":     "https://github.com/StreamMachine/sm-archiver/",
+  "author":       {"name": "Eric Richardson", "url": "http://ewr.is"},
+  "repository":   {"type": "git", "url": "https://github.com/StreamMachine/sm-archiver.git"},
   "main": "index.js",
   "dependencies": {
     "nconf":          "^0.7.1",
     "coffee-script":  "^1.9.0",
-    "streammachine":  "~0.4.0",
+    "streammachine":  "~0.7.0",
     "underscore":     "~1.7.0",
     "waveform":       "~2.0.0",
-    "temp":           "~0.8.1"
+    "temp":           "~0.8.1",
+    "debug":          "~2.2.0",
+    "sequelize":      "~3.0.0",
+    "express":        "~4.13.3",
+    "compression":    "~1.6.0",
+    "mysql":          "~2.5.4"
   },
   "devDependencies": {
   },
