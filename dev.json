@@ -3,5 +3,7 @@
   "master": {
     "master": "ws://127.0.0.1:8003?password=abc123"
   },
-  "port": 8005
+  "port": 8005,
+  "segment_width": 300,
+  "preview_width": 1500
 }

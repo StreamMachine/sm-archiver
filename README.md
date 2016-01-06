@@ -10,10 +10,12 @@ data up to clients it writes HLS segments to disk or S3.
 
 * StreamMachine ~> 0.7
 * Node.js
+* Waveform <https://github.com/StreamMachine/waveform>
 
 ## Running
 
 This code doesn't do a lot yet, but you can fire it up with something along the lines of:
 
-    coffee ./src/runner.coffee --master:master ws://127.0.0.1:8003?password=abc123
+    coffee ./src/runner.coffee --config dev.json
 
+Waveform data is kept in memory and is regenerated on restart.

@@ -8,6 +8,11 @@ module.exports = class Server
 
         @app.set "x-powered-by", "StreamMachine"
 
+        @app.use (req, res, next) =>
+            res.header("Access-Control-Allow-Origin", "*")
+            res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+            next()
+
         # -- Stream Finder -- #
 
         @app.param "stream", (req,res,next,key) =>
@@ -24,16 +29,31 @@ module.exports = class Server
         @app.get "/:stream/ts/:seg.(:format)", (req,res) =>
             new @core.Outputs.live_streaming req.stream, req:req, res:res, format:req.param("format")
 
+        @app.get "/:stream/preview", (req,res) =>
+            req.stream._archiver.getPreview (err,preview,json) =>
+                if err
+                    res.status(500).end "No preview available"
+                else
+                    res.writeHead 200,
+                        "Content-type": "application/json"
+                        "Content-length": json.length
+
+                    res.end json
+
         @app.get "/:stream/waveform/:seg", (req,res) =>
-            if json = req.stream._waveforms[req.params.seg]
+            req.stream._archiver.getWaveform req.params.seg, (err,json) =>
+                if err
+                    res.status(404).end "Waveform not found."
+                    return false
+
                 res.writeHead 200,
                     "Content-type": "application/json"
                     "Content-length": json.length
 
-                res.end json
+                res.end json                
 
-            else
-                res.status(404).end "Waveform not found."
+        @app.get "/:stream/export", (req,res) =>
+            new @core.Outputs.pumper req.stream, req:req, res:res
 
         # -- Listen! -- #
 

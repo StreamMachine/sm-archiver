@@ -15,10 +15,9 @@
     "waveform":       "~2.0.0",
     "temp":           "~0.8.1",
     "debug":          "~2.2.0",
-    "sequelize":      "~3.0.0",
     "express":        "~4.13.3",
     "compression":    "~1.6.0",
-    "mysql":          "~2.5.4"
+    "waveform-data":  "~1.5.1"
   },
   "devDependencies": {
   },

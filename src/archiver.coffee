@@ -1,14 +1,16 @@
 SlaveIO     = require "streammachine/src/streammachine/slave/slave_io"
 Logger      = require "streammachine/src/streammachine/logger"
+Debounce    = require "streammachine/src/streammachine/util/debounce"
 
-WaveTransform = require "./wave_transform"
-Server = require "./server"
+WaveTransform   = require "./wave_transform"
+SegmentPuller   = require "./segment_puller"
+Server          = require "./server"
+
+WaveformData = require "waveform-data"
 
 _ = require "underscore"
 
 debug = require("debug")("sm-archiver")
-
-Sequelize = require "sequelize"
 
 module.exports = class Archiver extends require("streammachine/src/streammachine/slave")
     constructor: (@options) ->
@@ -20,9 +22,6 @@ module.exports = class Archiver extends require("streammachine/src/streammachine
         @_retrying      = null
 
         @log = new Logger { stdout:true }
-
-        if @options.sqlstore
-            @sql = new Archiver.SequelStore @options.sqlstore, @log.child(component:"sqlstore")
 
         @io = new SlaveIO @, @log.child(module:"io"), @options.master
 
@@ -38,115 +37,98 @@ module.exports = class Archiver extends require("streammachine/src/streammachine
             for k,s of @streams
                 do (k,s) =>
                     debug "Creating StreamArchiver for #{k}"
-                    s._archiver = new Archiver.StreamArchiver s, (obj) => @_saveSegment(s,obj)
-                    s._waveforms = {}
+                    s._archiver = new Archiver.StreamArchiver s, @options
 
         # create a server
         @server = new Server @, @options.port, @log.child(component:"server")
 
-    _saveSegment: (stream,obj) ->
-        @sql?.save(stream,obj)
-
-        # all we need to cache here is the waveform... we'll use normal
-        # channels for the segment itself
-        debug "Stashing waveform for segment #{obj.id}"
-        stream._waveforms[obj.id] = obj.waveform_json
-
     #----------
 
-    class @SequelStore
-        constructor: (@opts,@log) ->
-            @_seq = new Sequelize @opts.uri, logging:((err) ->)
-            @segment = @_seq.define "Segment",
-                stream:         Sequelize.STRING
-                id:             Sequelize.INTEGER
-                ts:             Sequelize.DATE
-                end_ts:         Sequelize.DATE
-                ts_actual:      Sequelize.DATE
-                end_ts_actual:  Sequelize.DATE
-                waveform:       Sequelize.TEXT
-                duration:       Sequelize.FLOAT
-                data_length:    Sequelize.INTEGER
-                audio:          Sequelize.BLOB('medium')
+    class @StreamArchiver extends require("events").EventEmitter
+        constructor: (@stream,@options) ->
+            @segments = {}
+            @snapshot = null
+            @preview = null
+            @preview_json = null
 
-            @segment.sync()
+            @seg_puller = new SegmentPuller @stream
+            @wave_transform = new WaveTransform @options.waveform, @options.segment_width
+            @seg_puller.pipe(@wave_transform)
 
-        save: (stream,obj) ->
-            @segment.create
-                stream:         stream.key
-                id:             obj.id
-                ts:             obj.ts
-                end_ts:         obj.end_ts
-                ts_actual:      obj.ts_actual
-                end_ts_actual:  obj.end_ts_actual
-                data_length:    obj.data_length
-                duration:       obj.duration
-                audio:          obj.cbuf
-                waveform:       JSON.stringify(obj.waveform)
-            .catch (err) => @log.error "sequel err: #{err}"
-
-    #----------
-
-    class @StreamArchiver
-        constructor: (@stream,@wfunc) ->
-            @wave_transform = new WaveTransform
+            @_segDebounce = new Debounce 1000, =>
+                @_updatePreview()
 
             @wave_transform.on "readable", =>
-                @wfunc obj while obj = @wave_transform.read()
-
-            # FIXME: Need to look this up on startup
-            @max_id = 0
-
-            # FIXME: On startup, we need to wait until the rewind buffer is loaded before
-            # looping through segments
+                while seg = @wave_transform.read()
+                    seg.wavedata = WaveformData.create seg.waveform
+                    @segments[seg.id] = seg
+                    @_segDebounce.ping()
+                    debug "Stashed waveform data for #{seg.id}"
 
             # process snapshots to look for new segments
             @stream.source.on "hls_snapshot", (snapshot) =>
-              @processSnapshot snapshot
+                @snapshot = snapshot
+                @processSnapshot snapshot
 
-            @stream.source.getHLSSnapshot (err,snapshot) =>
-              @processSnapshot snapshot
+            @stream._once_source_loaded =>
+                @stream.source.getHLSSnapshot (err,snapshot) =>
+                    @snapshot = snapshot
+                    @processSnapshot snapshot
 
         #----------
 
         processSnapshot: (snapshot) ->
             return false if !snapshot
 
-            debug "HLS Snapshot for #{@stream.key}"
+            debug "HLS Snapshot for #{@stream.key} (#{snapshot.segments.length} segments)"
+            debug "Rewind extents are ", @stream._rbuffer.first(), @stream._rbuffer.last()
+
+            # are there segments to expire? (ids that are present in @segments
+            # but not in the snapshot)
+            for id in _.difference(Object.keys(@segments),_.pluck(snapshot.segments,'id'))
+                delete @segments[id]
+                @_segDebounce.ping()
 
             for seg in snapshot.segments
-                if seg.id <= @max_id
-                    # do nothing
+                @seg_puller.write seg if !@segments[seg.id]
+
+        #----------
+
+        getPreview: (cb) ->
+            if @preview
+                cb null, @preview, @preview_json
+            else
+                # FIXME: eventually there could be logic here to wait
+                cb new Error("No preview available")
+
+        getWaveform: (id,cb) ->
+            if @segments[id]
+                cb null, @segments[id].waveform_json
+            else
+                cb new Error("Not found")
+
+        #----------
+
+        # Generate a preview that includes the snapshot and a downsampled waveform
+        _updatePreview: ->
+            debug "Generating preview"
+            pseg_width = Math.ceil( @options.preview_width / @snapshot.segments.length )
+
+            preview = []
+
+            for seg in @snapshot.segments
+                segp = if @segments[seg.id]
+                    # generate an actual waveform...
+                    @segments[seg.id].wavedata.resample(pseg_width).adapter.data
                 else
-                    @max_id = seg.id
-                    debug "Should archive #{seg.id} for #{@stream.key}"
+                    # generate zeros...
+                    _(pseg_width*2).times(0)
 
-                    dur = @stream.secsToOffset seg.duration / 1000
-                    @stream._rbuffer.range seg.ts_actual, dur, (err,chunks) =>
-                        if err
-                            console.error "Error getting segment rewind: #{err}"
-                            return false
+                preview.push _.extend {}, seg, preview:segp
 
-                        buffers     = []
-                        length      = 0
-                        duration    = 0
-                        meta        = null
+            @preview = preview
+            @preview_json = JSON.stringify @preview
+            @emit "preview", @preview, @preview_json
+            debug "Preview generation complete"
 
-                        for b in chunks
-                            length      += b.data.length
-                            duration    += b.duration
-
-                            buffers.push b.data
-
-                            meta = b.meta if !meta
-
-                        cbuf = Buffer.concat(buffers,length)
-
-                        obj = _.extend {}, seg,
-                            cbuf:       cbuf
-                            duration:   duration
-                            meta:       meta
-
-                        # -- generate waveform -- #
-
-                        @wave_transform.write obj
+    #----------

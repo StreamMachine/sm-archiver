@@ -1,9 +1,10 @@
 waveform    = require "waveform"
 temp        = require "temp"
 fs          = require "fs"
+execFile    = require("child_process").execFile
 
 module.exports = class WaveTransform extends require("stream").Transform
-    constructor: ->
+    constructor: (@waveBin,@width)->
         super objectMode:true
 
     #----------
@@ -23,12 +24,7 @@ module.exports = class WaveTransform extends require("stream").Transform
                     return false
 
                 fs.close info.fd, (err) =>
-
-                    waveform info.path,
-                        scan:           false
-                        waveformjs:     "-"
-                        'wjs-width':    200
-                    , (err,stdout) =>
+                    execFile @waveBin, [info.path,"--wjs-width",@width,"--scan"], (err,stdout,stderr) =>
                         if err
                             console.error "waveform error: #{err}"
                             cb()
