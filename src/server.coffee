@@ -1,6 +1,8 @@
 express = require "express"
 compression = require "compression"
 
+ClipExporter = require "./clip_exporter"
+
 module.exports = class Server
     constructor: (@core,@port,@log) ->
         @app = express()
@@ -50,10 +52,11 @@ module.exports = class Server
                     "Content-type": "application/json"
                     "Content-length": json.length
 
-                res.end json                
+                res.end json
 
         @app.get "/:stream/export", (req,res) =>
-            new @core.Outputs.pumper req.stream, req:req, res:res
+            new ClipExporter req.stream, req:req, res:res
+            #new @core.Outputs.pumper req.stream, req:req, res:res
 
         # -- Listen! -- #
 
