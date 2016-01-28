@@ -21,7 +21,7 @@ module.exports = class ClipExporter
         start_offset = @stream._rbuffer._findTimestampOffset start_time
         end_offset = @stream._rbuffer._findTimestampOffset end_time
 
-        debug "Start/End offsets are #{start_offset}/#{end_offset}", start_time, end_time
+        debug "Start/End offsets are #{start_offset}/#{end_offset}", start_time.toISOString(), end_time.toISOString()
 
         @stream._rbuffer.range start_offset, (start_offset-end_offset)+1, (err,chunks) =>
             if err
@@ -36,7 +36,7 @@ module.exports = class ClipExporter
             trim_start = Number(start_time) - Number(chunks[0].ts)
             trim_end = Number(chunks[chunks.length-1].ts) + chunks[chunks.length-1].duration - Number(end_time)
 
-            debug "Start/end trims are #{ trim_start } / #{ trim_end }", chunks[0].ts, chunks[chunks.length-1].ts, chunks[chunks.length-1].duration
+            debug "Start/end trims are #{ trim_start } / #{ trim_end }", chunks[0].ts.toISOString(), chunks[chunks.length-1].ts.toISOString(), chunks[chunks.length-1].duration
 
             aF = _.after 2, =>
                 debug "Chunk trimming complete."
@@ -127,10 +127,13 @@ module.exports = class ClipExporter
                 else
                     bufs.push frame
                     bufLen += frame.length
+                    bufDuration += header.duration
 
         parser.on "end", =>
             # re-assemble our chunk with the new info
             buf = Buffer.concat(bufs,bufLen)
+
+            debug "Trim skipped #{ skippedBytes } bytes and #{ skippedDuration }ms"
 
             new_chunk =
                 ts: new_ts
