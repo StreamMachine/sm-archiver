@@ -6,8 +6,8 @@ debug = require("debug")("sm-archiver")
 _ = require "underscore"
 
 Parsers =
-    aac: require "streammachine/src/streammachine/parsers/aac"
-    mp3: require "streammachine/src/streammachine/parsers/mp3"
+    aac: require "streammachine/js/src/streammachine/parsers/aac"
+    mp3: require "streammachine/js/src/streammachine/parsers/mp3"
 
 module.exports = class ClipExporter
     constructor: (@stream,@opts) ->

@@ -1,6 +1,6 @@
-SlaveIO     = require "streammachine/src/streammachine/slave/slave_io"
-Logger      = require "streammachine/src/streammachine/logger"
-Debounce    = require "streammachine/src/streammachine/util/debounce"
+SlaveIO     = require "streammachine/js/src/streammachine/slave/slave_io"
+Logger      = require "streammachine/js/src/streammachine/logger"
+Debounce    = require "streammachine/js/src/streammachine/util/debounce"
 
 WaveTransform   = require "./wave_transform"
 SegmentPuller   = require "./segment_puller"
@@ -12,7 +12,7 @@ _ = require "underscore"
 
 debug = require("debug")("sm-archiver")
 
-module.exports = class Archiver extends require("streammachine/src/streammachine/slave")
+module.exports = class Archiver extends require("streammachine/js/src/streammachine/slave")
     constructor: (@options) ->
         @streams        = {}
         @stream_groups  = {}

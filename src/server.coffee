@@ -6,9 +6,8 @@ ClipExporter = require "./clip_exporter"
 module.exports = class Server
     constructor: (@core,@port,@log) ->
         @app = express()
-        #@_server = http.createServer @app
 
-        @app.set "x-powered-by", "StreamMachine"
+        @app.set "x-powered-by", "StreamMachine Archiver"
 
         @app.use (req, res, next) =>
             res.header("Access-Control-Allow-Origin", "*")
