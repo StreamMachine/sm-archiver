@@ -1,6 +1,6 @@
 {
   "name": "sm-archiver",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "StreamMachine Archive Writer",
   "repo": "git@github.com:StreamMachine/sm-archiver.git",
   "homepage":     "https://github.com/StreamMachine/sm-archiver/",

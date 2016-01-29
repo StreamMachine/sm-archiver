@@ -30,6 +30,16 @@ module.exports = class Server
         @app.get "/:stream/ts/:seg.(:format)", (req,res) =>
             new @core.Outputs.live_streaming req.stream, req:req, res:res, format:req.param("format")
 
+        @app.get "/:stream/info", (req,res) =>
+            info = format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream._archiver?
+            json = JSON.stringify info
+
+            res.writeHead 200,
+                "Content-type": "application/json"
+                "Content-length": json.length
+
+            res.end json
+
         @app.get "/:stream/preview", (req,res) =>
             req.stream._archiver.getPreview (err,preview,json) =>
                 if err

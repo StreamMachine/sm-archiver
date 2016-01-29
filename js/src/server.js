@@ -52,6 +52,22 @@ module.exports = Server = (function() {
         });
       };
     })(this));
+    this.app.get("/:stream/info", (function(_this) {
+      return function(req, res) {
+        var info, json;
+        info = {
+          format: req.stream.opts.format,
+          codec: req.stream.opts.codec,
+          archived: req.stream._archiver != null
+        };
+        json = JSON.stringify(info);
+        res.writeHead(200, {
+          "Content-type": "application/json",
+          "Content-length": json.length
+        });
+        return res.end(json);
+      };
+    })(this));
     this.app.get("/:stream/preview", (function(_this) {
       return function(req, res) {
         return req.stream._archiver.getPreview(function(err, preview, json) {

@@ -35,6 +35,9 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
             @_configured = true
 
             for k,s of @streams
+                if @options.streams?.length > 0 && @options.streams.indexOf(k) == -1
+                    continue
+                    
                 do (k,s) =>
                     debug "Creating StreamArchiver for #{k}"
                     s._archiver = new Archiver.StreamArchiver s, @options

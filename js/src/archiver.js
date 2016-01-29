@@ -48,12 +48,15 @@ module.exports = Archiver = (function(_super) {
     })(this));
     this.once("streams", (function(_this) {
       return function() {
-        var k, s, _ref, _results;
+        var k, s, _ref, _ref1, _results;
         _this._configured = true;
         _ref = _this.streams;
         _results = [];
         for (k in _ref) {
           s = _ref[k];
+          if (((_ref1 = _this.options.streams) != null ? _ref1.length : void 0) > 0 && _this.options.streams.indexOf(k) === -1) {
+            continue;
+          }
           _results.push((function(k, s) {
             debug("Creating StreamArchiver for " + k);
             return s._archiver = new Archiver.StreamArchiver(s, _this.options);
