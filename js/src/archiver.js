@@ -103,6 +103,7 @@ module.exports = Archiver = (function(_super) {
       })(this));
       this.stream.source.on("hls_snapshot", (function(_this) {
         return function(snapshot) {
+          debug("HLS Snapshot received via broadcast");
           _this.snapshot = snapshot;
           return _this.processSnapshot(snapshot);
         };
@@ -110,6 +111,7 @@ module.exports = Archiver = (function(_super) {
       this.stream._once_source_loaded((function(_this) {
         return function() {
           return _this.stream.source.getHLSSnapshot(function(err, snapshot) {
+            debug("HLS snapshot from initial source load");
             _this.snapshot = snapshot;
             return _this.processSnapshot(snapshot);
           });
@@ -127,6 +129,7 @@ module.exports = Archiver = (function(_super) {
       _ref = _.difference(Object.keys(this.segments), _.pluck(snapshot.segments, 'id'));
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         id = _ref[_i];
+        debug("Expiring segment " + id + " from waveform cache");
         delete this.segments[id];
         this._segDebounce.ping();
       }
@@ -134,8 +137,9 @@ module.exports = Archiver = (function(_super) {
       _results = [];
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         seg = _ref1[_j];
-        if (!this.segments[seg.id]) {
-          _results.push(this.seg_puller.write(seg));
+        if (this.segments[seg.id] == null) {
+          this.seg_puller.write(seg);
+          _results.push(this.segments[seg.id] = false);
         } else {
           _results.push(void 0);
         }

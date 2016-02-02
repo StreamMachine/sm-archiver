@@ -37,7 +37,7 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
             for k,s of @streams
                 if @options.streams?.length > 0 && @options.streams.indexOf(k) == -1
                     continue
-                    
+
                 do (k,s) =>
                     debug "Creating StreamArchiver for #{k}"
                     s._archiver = new Archiver.StreamArchiver s, @options
@@ -70,11 +70,13 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
 
             # process snapshots to look for new segments
             @stream.source.on "hls_snapshot", (snapshot) =>
+                debug "HLS Snapshot received via broadcast"
                 @snapshot = snapshot
                 @processSnapshot snapshot
 
             @stream._once_source_loaded =>
                 @stream.source.getHLSSnapshot (err,snapshot) =>
+                    debug "HLS snapshot from initial source load"
                     @snapshot = snapshot
                     @processSnapshot snapshot
 
@@ -89,11 +91,14 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
             # are there segments to expire? (ids that are present in @segments
             # but not in the snapshot)
             for id in _.difference(Object.keys(@segments),_.pluck(snapshot.segments,'id'))
+                debug "Expiring segment #{id} from waveform cache"
                 delete @segments[id]
                 @_segDebounce.ping()
 
             for seg in snapshot.segments
-                @seg_puller.write seg if !@segments[seg.id]
+                if !@segments[seg.id]?
+                    @seg_puller.write seg
+                    @segments[seg.id] = false
 
         #----------
 
