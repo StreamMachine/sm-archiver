@@ -90,7 +90,7 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
 
             # are there segments to expire? (ids that are present in @segments
             # but not in the snapshot)
-            for id in _.difference(Object.keys(@segments),_.pluck(snapshot.segments,'id'))
+            for id in _.difference(Object.keys(@segments),_.map(snapshot.segments,(s) -> s.id.toString()))
                 debug "Expiring segment #{id} from waveform cache"
                 delete @segments[id]
                 @_segDebounce.ping()

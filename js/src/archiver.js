@@ -126,7 +126,9 @@ module.exports = Archiver = (function(_super) {
       }
       debug("HLS Snapshot for " + this.stream.key + " (" + snapshot.segments.length + " segments)");
       debug("Rewind extents are ", this.stream._rbuffer.first(), this.stream._rbuffer.last());
-      _ref = _.difference(Object.keys(this.segments), _.pluck(snapshot.segments, 'id'));
+      _ref = _.difference(Object.keys(this.segments), _.map(snapshot.segments, function(s) {
+        return s.id.toString();
+      }));
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         id = _ref[_i];
         debug("Expiring segment " + id + " from waveform cache");
