@@ -81,7 +81,7 @@ module.exports = Archiver = (function(_super) {
       this.preview = null;
       this.preview_json = null;
       this.seg_puller = new SegmentPuller(this.stream);
-      this.wave_transform = new WaveTransform(this.options.waveform, this.options.segment_width);
+      this.wave_transform = new WaveTransform(this.options.pixels_per_second);
       this.seg_puller.pipe(this.wave_transform);
       this._segDebounce = new Debounce(1000, (function(_this) {
         return function() {

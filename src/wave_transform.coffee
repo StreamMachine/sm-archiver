@@ -1,38 +1,28 @@
-waveform    = require "waveform"
+waveform    = require "sm-waveform"
+PassThrough = require("stream").PassThrough
 temp        = require "temp"
 fs          = require "fs"
-execFile    = require("child_process").execFile
+
+debug = require("debug")("sm-archiver")
 
 module.exports = class WaveTransform extends require("stream").Transform
-    constructor: (@waveBin,@width)->
+    constructor: (@pps)->
         super objectMode:true
 
     #----------
 
     _transform: (obj,encoding,cb) ->
-        # create tempfile
-        temp.open 'sm-archive', (err,info) =>
-            if err
-                console.error "Tempfile error: #{err}"
-                cb()
-                return false
+        pt = new PassThrough()
 
-            fs.write info.fd, obj.cbuf, 0, obj.cbuf.length, null, (err) =>
-                if err
-                    console.error "fd.write error: #{err}"
-                    cb()
-                    return false
+        debug "In WaveTransform for #{obj.id}"
 
-                fs.close info.fd, (err) =>
-                    execFile @waveBin, [info.path,"--wjs-width",@width,"--scan"], (err,stdout,stderr) =>
-                        if err
-                            console.error "waveform error: #{err}"
-                            cb()
-                            return false
+        new waveform.Waveform pt, pixelsPerSecond:@pps, (err,wave) =>
+            return cb err if err
 
-                        fs.unlink info.path, (err) =>
-                            obj.waveform = JSON.parse stdout
-                            obj.waveform_json = stdout
-                            @push obj
+            obj.waveform = wave.asJSON()
+            obj.waveform_json = JSON.stringify(obj.waveform)
+            @push obj
 
-                            cb()
+            cb()
+
+        pt.end obj.cbuf

@@ -10,7 +10,6 @@ data up to clients it writes HLS segments to disk or S3.
 
 * StreamMachine ~> 0.7
 * Node.js
-* Waveform <https://github.com/StreamMachine/waveform>
 
 ## Running
 

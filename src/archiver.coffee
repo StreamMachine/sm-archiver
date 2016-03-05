@@ -55,7 +55,7 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
             @preview_json = null
 
             @seg_puller = new SegmentPuller @stream
-            @wave_transform = new WaveTransform @options.waveform, @options.segment_width
+            @wave_transform = new WaveTransform @options.pixels_per_second
             @seg_puller.pipe(@wave_transform)
 
             @_segDebounce = new Debounce 1000, =>

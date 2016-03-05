@@ -1,6 +1,6 @@
 {
   "name": "sm-archiver",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "StreamMachine Archive Writer",
   "repo": "git@github.com:StreamMachine/sm-archiver.git",
   "homepage":     "https://github.com/StreamMachine/sm-archiver/",
@@ -16,7 +16,8 @@
     "debug":          "~2.2.0",
     "express":        "~4.13.3",
     "compression":    "~1.6.0",
-    "waveform-data":  "~1.5.1"
+    "waveform-data":  "~1.5.1",
+    "sm-waveform":    "~0.1.0"
   },
   "devDependencies": {
     "coffee-script": "~1.9.0",
