@@ -1,6 +1,6 @@
-var Archiver, Debounce, Logger, SegmentPuller, Server, SlaveIO, WaveTransform, WaveformData, debug, _,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+var Archiver, Debounce, Logger, SegmentPuller, Server, SlaveIO, WaveTransform, WaveformData, _, debug,
+  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  hasProp = {}.hasOwnProperty;
 
 SlaveIO = require("streammachine/js/src/streammachine/slave/slave_io");
 
@@ -20,8 +20,8 @@ _ = require("underscore");
 
 debug = require("debug")("sm-archiver");
 
-module.exports = Archiver = (function(_super) {
-  __extends(Archiver, _super);
+module.exports = Archiver = (function(superClass) {
+  extend(Archiver, superClass);
 
   function Archiver(options) {
     this.options = options;
@@ -48,21 +48,21 @@ module.exports = Archiver = (function(_super) {
     })(this));
     this.once("streams", (function(_this) {
       return function() {
-        var k, s, _ref, _ref1, _results;
+        var k, ref, ref1, results, s;
         _this._configured = true;
-        _ref = _this.streams;
-        _results = [];
-        for (k in _ref) {
-          s = _ref[k];
-          if (((_ref1 = _this.options.streams) != null ? _ref1.length : void 0) > 0 && _this.options.streams.indexOf(k) === -1) {
+        ref = _this.streams;
+        results = [];
+        for (k in ref) {
+          s = ref[k];
+          if (((ref1 = _this.options.streams) != null ? ref1.length : void 0) > 0 && _this.options.streams.indexOf(k) === -1) {
             continue;
           }
-          _results.push((function(k, s) {
+          results.push((function(k, s) {
             debug("Creating StreamArchiver for " + k);
             return s._archiver = new Archiver.StreamArchiver(s, _this.options);
           })(k, s));
         }
-        return _results;
+        return results;
       };
     })(this));
     this.server = new Server(this, this.options.port, this.log.child({
@@ -70,8 +70,8 @@ module.exports = Archiver = (function(_super) {
     }));
   }
 
-  Archiver.StreamArchiver = (function(_super1) {
-    __extends(StreamArchiver, _super1);
+  Archiver.StreamArchiver = (function(superClass1) {
+    extend(StreamArchiver, superClass1);
 
     function StreamArchiver(stream, options) {
       this.stream = stream;
@@ -90,15 +90,15 @@ module.exports = Archiver = (function(_super) {
       })(this));
       this.wave_transform.on("readable", (function(_this) {
         return function() {
-          var seg, _results;
-          _results = [];
+          var results, seg;
+          results = [];
           while (seg = _this.wave_transform.read()) {
             seg.wavedata = WaveformData.create(seg.waveform);
             _this.segments[seg.id] = seg;
             _this._segDebounce.ping();
-            _results.push(debug("Stashed waveform data for " + seg.id));
+            results.push(debug("Stashed waveform data for " + seg.id));
           }
-          return _results;
+          return results;
         };
       })(this));
       this.stream.source.on("hls_snapshot", (function(_this) {
@@ -120,33 +120,33 @@ module.exports = Archiver = (function(_super) {
     }
 
     StreamArchiver.prototype.processSnapshot = function(snapshot) {
-      var id, seg, _i, _j, _len, _len1, _ref, _ref1, _results;
+      var i, id, j, len, len1, ref, ref1, results, seg;
       if (!snapshot) {
         return false;
       }
       debug("HLS Snapshot for " + this.stream.key + " (" + snapshot.segments.length + " segments)");
       debug("Rewind extents are ", this.stream._rbuffer.first(), this.stream._rbuffer.last());
-      _ref = _.difference(Object.keys(this.segments), _.map(snapshot.segments, function(s) {
+      ref = _.difference(Object.keys(this.segments), _.map(snapshot.segments, function(s) {
         return s.id.toString();
       }));
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        id = _ref[_i];
+      for (i = 0, len = ref.length; i < len; i++) {
+        id = ref[i];
         debug("Expiring segment " + id + " from waveform cache");
         delete this.segments[id];
         this._segDebounce.ping();
       }
-      _ref1 = snapshot.segments;
-      _results = [];
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        seg = _ref1[_j];
+      ref1 = snapshot.segments;
+      results = [];
+      for (j = 0, len1 = ref1.length; j < len1; j++) {
+        seg = ref1[j];
         if (this.segments[seg.id] == null) {
           this.seg_puller.write(seg);
-          _results.push(this.segments[seg.id] = false);
+          results.push(this.segments[seg.id] = false);
         } else {
-          _results.push(void 0);
+          results.push(void 0);
         }
       }
-      return _results;
+      return results;
     };
 
     StreamArchiver.prototype.getPreview = function(cb) {
@@ -166,13 +166,13 @@ module.exports = Archiver = (function(_super) {
     };
 
     StreamArchiver.prototype._updatePreview = function() {
-      var preview, pseg_width, seg, segp, _i, _len, _ref;
+      var i, len, preview, pseg_width, ref, seg, segp;
       debug("Generating preview");
       pseg_width = Math.ceil(this.options.preview_width / this.snapshot.segments.length);
       preview = [];
-      _ref = this.snapshot.segments;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        seg = _ref[_i];
+      ref = this.snapshot.segments;
+      for (i = 0, len = ref.length; i < len; i++) {
+        seg = ref[i];
         segp = this.segments[seg.id] ? this.segments[seg.id].wavedata.resample(pseg_width).adapter.data : _(pseg_width * 2).times(0);
         preview.push(_.extend({}, seg, {
           preview: segp

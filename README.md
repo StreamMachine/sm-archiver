@@ -1,4 +1,4 @@
-# Streammachine Archiver
+# StreamMachine Archiver
 
 This is an experiment that may eventually become part of
 [StreamMachine](https://github.com/StreamMachine/StreamMachine)'s core functionality.
@@ -6,15 +6,53 @@ This is an experiment that may eventually become part of
 Archiver connects to StreamMachine master as a slave, but instead of serving
 data up to clients it writes HLS segments to disk or S3.
 
+So far, waveform data is kept in memory and is regenerated on restart.
+
+While running, StreamMachine Archiver can be found at http://localhost:9000<sup>(1)</sup>.
+
 ## Requirements
 
-* StreamMachine ~> 0.7
-* Node.js
+* Node.js<sup>(2)</sup>
+* libgroove<sup>(3)</sup>
+* Docker<sup>(4)</sup>
 
 ## Running
 
-This code doesn't do a lot yet, but you can fire it up with something along the lines of:
+### Locally
 
-    coffee ./src/runner.coffee --config dev.json
+#### Installing
 
-Waveform data is kept in memory and is regenerated on restart.
+    npm install
+
+#### Starting
+
+    npm start -- --config config/dev.json
+
+#### Debug Mode
+
+    npm run start:debug -- --config config/dev.json
+
+### With Docker
+
+#### Building
+
+    docker build -t sm-archiver .
+
+#### Installing
+
+    npm run docker -- npm install
+
+#### Starting
+
+    npm run docker:start -- -- --config config/dev.json
+
+#### Debug Mode
+
+    npm run docker:start:debug -- -- --config config/dev.json
+
+## Notes
+
+1. Unless running with Docker via *boot2docker* or *docker-machine*, in which case localhost should be replaced with the Docker VM's IP.
+2. Not required if running with Docker.
+3. Not required if running with Docker.
+4. Not required if running locally.

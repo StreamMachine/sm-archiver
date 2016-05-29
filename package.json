@@ -1,33 +1,39 @@
 {
   "name": "sm-archiver",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "StreamMachine Archive Writer",
-  "repo": "git@github.com:StreamMachine/sm-archiver.git",
-  "homepage":     "https://github.com/StreamMachine/sm-archiver/",
-  "author":       {"name": "Eric Richardson", "url": "http://ewr.is"},
-  "repository":   {"type": "git", "url": "https://github.com/StreamMachine/sm-archiver.git"},
+  "homepage": "https://github.com/StreamMachine/sm-archiver/",
+  "author": "Eric Richardson <e@ewr.is>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StreamMachine/sm-archiver.git"
+  },
   "main": "index.js",
   "dependencies": {
-    "nconf":          "^0.7.1",
-    "streammachine":  "~0.7.0",
-    "underscore":     "~1.7.0",
-    "waveform":       "~2.0.0",
-    "temp":           "~0.8.1",
-    "debug":          "~2.2.0",
-    "express":        "~4.13.3",
-    "compression":    "~1.6.0",
-    "waveform-data":  "~1.5.1",
-    "sm-waveform":    "~0.1.0"
+    "compression": "~1.6.0",
+    "debug": "~2.2.0",
+    "express": "~4.13.3",
+    "nconf": "^0.8.4",
+    "sm-waveform": "~0.1.0",
+    "streammachine": "~0.7.0",
+    "temp": "~0.8.1",
+    "underscore": "^1.8.3",
+    "waveform-data": "~1.5.1"
   },
   "devDependencies": {
-    "coffee-script": "~1.9.0",
-    "grunt": "^0.4.5",
-    "grunt-cli": "^0.1.13",
-    "grunt-contrib-coffee": "^0.12.0",
-    "grunt-contrib-copy": "^0.8.0"
+    "coffee-script": "^1.10.0",
+    "grunt": "^1.0.1",
+    "grunt-cli": "^1.2.0",
+    "grunt-contrib-coffee": "^1.0.0",
+    "grunt-contrib-copy": "^1.0.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "./runner-cmd",
+    "start:debug": "DEBUG='express*,sm:slave*' ./runner-cmd",
+    "docker": "docker run -ti --rm -v $PWD:/data -p 9000:9000 sm-archiver",
+    "docker:start": "npm run docker -- npm start",
+    "docker:start:debug": "npm run docker -- npm run start:debug"
   },
   "bin": {
     "sm-archiver": "./runner-cmd"
@@ -35,6 +41,5 @@
   "keywords": [
     "streammachine"
   ],
-  "author": "Eric Richardson <e@ewr.is>",
   "license": "MIT"
 }

@@ -1,6 +1,6 @@
 var PassThrough, WaveTransform, debug, fs, temp, waveform,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  hasProp = {}.hasOwnProperty;
 
 waveform = require("sm-waveform");
 
@@ -12,8 +12,8 @@ fs = require("fs");
 
 debug = require("debug")("sm-archiver");
 
-module.exports = WaveTransform = (function(_super) {
-  __extends(WaveTransform, _super);
+module.exports = WaveTransform = (function(superClass) {
+  extend(WaveTransform, superClass);
 
   function WaveTransform(pps) {
     this.pps = pps;
