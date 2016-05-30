@@ -30,7 +30,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "./runner-cmd",
-    "start:debug": "DEBUG='express*,sm:slave*' ./runner-cmd",
+    "start:debug": "DEBUG='sm:slave*' ./runner-cmd",
     "docker": "docker run -ti --rm -v $PWD:/data -p 9000:9000 sm-archiver",
     "docker:start": "npm run docker -- npm start",
     "docker:start:debug": "npm run docker -- npm run start:debug"
