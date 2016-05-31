@@ -1,6 +1,6 @@
-var ClipExporter, Parsers, debug, _,
-  __hasProp = {}.hasOwnProperty,
-  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+var ClipExporter, Parsers, _, debug,
+  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+  hasProp = {}.hasOwnProperty;
 
 debug = require("debug")("sm-archiver");
 
@@ -12,9 +12,9 @@ Parsers = {
 };
 
 module.exports = ClipExporter = (function() {
-  function ClipExporter(stream, opts) {
+  function ClipExporter(stream1, opts) {
     var end_offset, end_time, start_offset, start_time;
-    this.stream = stream;
+    this.stream = stream1;
     this.opts = opts;
     start_time = new Date(this.opts.req.query.start);
     end_time = new Date(this.opts.req.query.end);
@@ -33,11 +33,11 @@ module.exports = ClipExporter = (function() {
         trim_end = Number(chunks[chunks.length - 1].ts) + chunks[chunks.length - 1].duration - Number(end_time);
         debug("Start/end trims are " + trim_start + " / " + trim_end, chunks[0].ts.toISOString(), chunks[chunks.length - 1].ts.toISOString(), chunks[chunks.length - 1].duration);
         aF = _.after(2, function() {
-          var c, content_length, _i, _len;
+          var c, content_length, i, len, stream;
           debug("Chunk trimming complete.");
           content_length = 0;
-          for (_i = 0, _len = chunks.length; _i < _len; _i++) {
-            c = chunks[_i];
+          for (i = 0, len = chunks.length; i < len; i++) {
+            c = chunks[i];
             content_length += c.data.length;
           }
           _this.opts.res.writeHead(200, {
@@ -133,8 +133,8 @@ module.exports = ClipExporter = (function() {
     return parser.end(chunk.data);
   };
 
-  ClipExporter.ChunkStream = (function(_super) {
-    __extends(ChunkStream, _super);
+  ClipExporter.ChunkStream = (function(superClass) {
+    extend(ChunkStream, superClass);
 
     function ChunkStream(data) {
       this.data = data;
@@ -144,7 +144,7 @@ module.exports = ClipExporter = (function() {
     }
 
     ChunkStream.prototype._read = function(size) {
-      var sent, _pushQueue;
+      var _pushQueue, sent;
       sent = 0;
       _pushQueue = (function(_this) {
         return function() {

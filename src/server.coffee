@@ -28,7 +28,7 @@ module.exports = class Server
             new @core.Outputs.live_streaming.Index req.stream, req:req, res:res
 
         @app.get "/:stream/ts/:seg.(:format)", (req,res) =>
-            new @core.Outputs.live_streaming req.stream, req:req, res:res, format:req.param("format")
+            new @core.Outputs.live_streaming req.stream, req:req, res:res, format:req.params.format
 
         @app.get "/:stream/info", (req,res) =>
             info = format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream._archiver?

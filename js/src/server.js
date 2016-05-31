@@ -48,7 +48,7 @@ module.exports = Server = (function() {
         return new _this.core.Outputs.live_streaming(req.stream, {
           req: req,
           res: res,
-          format: req.param("format")
+          format: req.params.format
         });
       };
     })(this));
