@@ -173,7 +173,11 @@ module.exports = Archiver = (function(superClass) {
       ref = this.snapshot.segments;
       for (i = 0, len = ref.length; i < len; i++) {
         seg = ref[i];
-        segp = this.segments[seg.id] ? this.segments[seg.id].wavedata.resample(pseg_width).adapter.data : _(pseg_width * 2).times(0);
+        segp = this.segments[seg.id] ? this.segments[seg.id].wavedata.resample(pseg_width).adapter.data : _(pseg_width * 2).times((function(_this) {
+          return function() {
+            return 0;
+          };
+        })(this));
         preview.push(_.extend({}, seg, {
           preview: segp
         }));

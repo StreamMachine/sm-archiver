@@ -130,7 +130,7 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
                     @segments[seg.id].wavedata.resample(pseg_width).adapter.data
                 else
                     # generate zeros...
-                    _(pseg_width*2).times(0)
+                    _(pseg_width*2).times(() => 0)
 
                 preview.push _.extend {}, seg, preview:segp
 
