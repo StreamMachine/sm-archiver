@@ -61,11 +61,7 @@ module.exports = Server = (function() {
           archived: req.stream._archiver != null
         };
         json = JSON.stringify(info);
-        res.writeHead(200, {
-          "Content-type": "application/json",
-          "Content-length": json.length
-        });
-        return res.end(json);
+        return res.json(json);
       };
     })(this));
     this.app.get("/:stream/preview", (function(_this) {
@@ -74,11 +70,7 @@ module.exports = Server = (function() {
           if (err) {
             return res.status(500).end("No preview available");
           } else {
-            res.writeHead(200, {
-              "Content-type": "application/json",
-              "Content-length": json.length
-            });
-            return res.end(json);
+            return res.json(json);
           }
         });
       };
@@ -90,11 +82,7 @@ module.exports = Server = (function() {
             res.status(404).end("Waveform not found.");
             return false;
           }
-          res.writeHead(200, {
-            "Content-type": "application/json",
-            "Content-length": json.length
-          });
-          return res.end(json);
+          return res.json(json);
         });
       };
     })(this));

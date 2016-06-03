@@ -10,7 +10,7 @@ WaveformData = require "waveform-data"
 
 _ = require "underscore"
 
-debug = require("debug")("sm-archiver")
+debug = require("debug")("sm:archiver")
 
 module.exports = class Archiver extends require("streammachine/js/src/streammachine/slave")
     constructor: (@options) ->
@@ -120,17 +120,16 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
         # Generate a preview that includes the snapshot and a downsampled waveform
         _updatePreview: ->
             debug "Generating preview"
-            pseg_width = Math.ceil( @options.preview_width / @snapshot.segments.length )
-
             preview = []
 
             for seg in @snapshot.segments
+                resample_options = @_getResampleOptions seg.id
                 segp = if @segments[seg.id]
                     # generate an actual waveform...
-                    @segments[seg.id].wavedata.resample(pseg_width).adapter.data
+                    @segments[seg.id].wavedata.resample(resample_options).adapter.data
                 else
                     # generate zeros...
-                    _(pseg_width*2).times(() => 0)
+                    _(resample_options.width*2).times(() => 0)
 
                 preview.push _.extend {}, seg, preview:segp
 
@@ -138,5 +137,13 @@ module.exports = class Archiver extends require("streammachine/js/src/streammach
             @preview_json = JSON.stringify @preview
             @emit "preview", @preview, @preview_json
             debug "Preview generation complete"
+
+        #----------
+
+        _getResampleOptions: (id) ->
+            pseg_width = Math.ceil( @options.preview_width / @snapshot.segments.length )
+            if @segments[id] && pseg_width < @segments[id].wavedata.adapter.scale
+                return scale: @segments[id].wavedata.adapter.scale
+            return width: pseg_width
 
     #----------

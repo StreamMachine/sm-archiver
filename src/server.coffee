@@ -34,22 +34,14 @@ module.exports = class Server
             info = format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream._archiver?
             json = JSON.stringify info
 
-            res.writeHead 200,
-                "Content-type": "application/json"
-                "Content-length": json.length
-
-            res.end json
+            res.json json
 
         @app.get "/:stream/preview", (req,res) =>
             req.stream._archiver.getPreview (err,preview,json) =>
                 if err
                     res.status(500).end "No preview available"
                 else
-                    res.writeHead 200,
-                        "Content-type": "application/json"
-                        "Content-length": json.length
-
-                    res.end json
+                    res.json json
 
         @app.get "/:stream/waveform/:seg", (req,res) =>
             req.stream._archiver.getWaveform req.params.seg, (err,json) =>
@@ -57,11 +49,7 @@ module.exports = class Server
                     res.status(404).end "Waveform not found."
                     return false
 
-                res.writeHead 200,
-                    "Content-type": "application/json"
-                    "Content-length": json.length
-
-                res.end json
+                res.json json
 
         @app.get "/:stream/export", (req,res) =>
             new ClipExporter req.stream, req:req, res:res
