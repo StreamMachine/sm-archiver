@@ -18,7 +18,7 @@ WaveformData = require("waveform-data");
 
 _ = require("underscore");
 
-debug = require("debug")("sm-archiver");
+debug = require("debug")("sm:archiver");
 
 module.exports = Archiver = (function(superClass) {
   extend(Archiver, superClass);
@@ -166,14 +166,14 @@ module.exports = Archiver = (function(superClass) {
     };
 
     StreamArchiver.prototype._updatePreview = function() {
-      var i, len, preview, pseg_width, ref, seg, segp;
+      var i, len, preview, ref, resample_options, seg, segp;
       debug("Generating preview");
-      pseg_width = Math.ceil(this.options.preview_width / this.snapshot.segments.length);
       preview = [];
       ref = this.snapshot.segments;
       for (i = 0, len = ref.length; i < len; i++) {
         seg = ref[i];
-        segp = this.segments[seg.id] ? this.segments[seg.id].wavedata.resample(pseg_width).adapter.data : _(pseg_width * 2).times((function(_this) {
+        resample_options = this._getResampleOptions(seg.id);
+        segp = this.segments[seg.id] ? this.segments[seg.id].wavedata.resample(resample_options).adapter.data : _(resample_options.width * 2).times((function(_this) {
           return function() {
             return 0;
           };
@@ -186,6 +186,19 @@ module.exports = Archiver = (function(superClass) {
       this.preview_json = JSON.stringify(this.preview);
       this.emit("preview", this.preview, this.preview_json);
       return debug("Preview generation complete");
+    };
+
+    StreamArchiver.prototype._getResampleOptions = function(id) {
+      var pseg_width;
+      pseg_width = Math.ceil(this.options.preview_width / this.snapshot.segments.length);
+      if (this.segments[id] && pseg_width < this.segments[id].wavedata.adapter.scale) {
+        return {
+          scale: this.segments[id].wavedata.adapter.scale
+        };
+      }
+      return {
+        width: pseg_width
+      };
     };
 
     return StreamArchiver;
