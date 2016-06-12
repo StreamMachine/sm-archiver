@@ -1,11 +1,10 @@
 waveform    = require "sm-waveform"
+WaveformData = require "waveform-data"
 PassThrough = require("stream").PassThrough
-temp        = require "temp"
-fs          = require "fs"
 
-debug = require("debug")("sm-archiver")
+debug = require("debug")("sm:archiver:transformers:waveform")
 
-module.exports = class WaveTransform extends require("stream").Transform
+module.exports = class WaveformTransformer extends require("stream").Transform
     constructor: (@pps)->
         super objectMode:true
 
@@ -13,16 +12,14 @@ module.exports = class WaveTransform extends require("stream").Transform
 
     _transform: (obj,encoding,cb) ->
         pt = new PassThrough()
-
-        debug "In WaveTransform for #{obj.id}"
-
+        debug "In WaveformTransformer for #{obj.id}"
         new waveform.Waveform pt, pixelsPerSecond:@pps, (err,wave) =>
             return cb err if err
-
             obj.waveform = wave.asJSON()
             obj.waveform_json = JSON.stringify(obj.waveform)
+            obj.wavedata = WaveformData.create obj.waveform
             @push obj
-
             cb()
-
         pt.end obj.cbuf
+
+    #----------

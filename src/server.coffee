@@ -31,25 +31,24 @@ module.exports = class Server
             new @core.Outputs.live_streaming req.stream, req:req, res:res, format:req.params.format
 
         @app.get "/:stream/info", (req,res) =>
-            info = format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream._archiver?
+            info = format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream.archiver?
             json = JSON.stringify info
 
             res.json json
 
         @app.get "/:stream/preview", (req,res) =>
-            req.stream._archiver.getPreview (err,preview,json) =>
+            req.stream.archiver.getPreview (err,preview) =>
                 if err
                     res.status(500).end "No preview available"
                 else
-                    res.json json
+                    res.json preview
 
         @app.get "/:stream/waveform/:seg", (req,res) =>
-            req.stream._archiver.getWaveform req.params.seg, (err,json) =>
+            req.stream.archiver.getWaveform req.params.seg, (err,waveform) =>
                 if err
                     res.status(404).end "Waveform not found."
-                    return false
-
-                res.json json
+                else
+                    res.json waveform
 
         @app.get "/:stream/export", (req,res) =>
             new ClipExporter req.stream, req:req, res:res

@@ -1,6 +1,6 @@
 _ = require "underscore"
 
-module.exports = class SegmentPuller extends require("stream").Transform
+module.exports = class BufferTransformer extends require("stream").Transform
     constructor: (@stream) ->
         super objectMode:true
 

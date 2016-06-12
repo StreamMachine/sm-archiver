@@ -58,7 +58,7 @@ module.exports = Server = (function() {
         info = {
           format: req.stream.opts.format,
           codec: req.stream.opts.codec,
-          archived: req.stream._archiver != null
+          archived: req.stream.archiver != null
         };
         json = JSON.stringify(info);
         return res.json(json);
@@ -66,23 +66,23 @@ module.exports = Server = (function() {
     })(this));
     this.app.get("/:stream/preview", (function(_this) {
       return function(req, res) {
-        return req.stream._archiver.getPreview(function(err, preview, json) {
+        return req.stream.archiver.getPreview(function(err, preview) {
           if (err) {
             return res.status(500).end("No preview available");
           } else {
-            return res.json(json);
+            return res.json(preview);
           }
         });
       };
     })(this));
     this.app.get("/:stream/waveform/:seg", (function(_this) {
       return function(req, res) {
-        return req.stream._archiver.getWaveform(req.params.seg, function(err, json) {
+        return req.stream.archiver.getWaveform(req.params.seg, function(err, waveform) {
           if (err) {
-            res.status(404).end("Waveform not found.");
-            return false;
+            return res.status(404).end("Waveform not found.");
+          } else {
+            return res.json(waveform);
           }
-          return res.json(json);
         });
       };
     })(this));
