@@ -129,7 +129,7 @@ module.exports = StreamArchiver = (function(superClass) {
 
   StreamArchiver.prototype.getWaveform = function(id, cb) {
     if (this.segments[id]) {
-      return cb(null, this.segments[id].waveform_json);
+      return cb(null, this.segments[id].waveform);
     } else {
       return cb(new Error("Not found"));
     }

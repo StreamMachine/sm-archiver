@@ -86,7 +86,7 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
     getWaveform: (id,cb) ->
         if @segments[id]
-            cb null, @segments[id].waveform_json
+            cb null, @segments[id].waveform
         else
             cb new Error("Not found")
 
