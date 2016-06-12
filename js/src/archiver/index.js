@@ -49,7 +49,7 @@ module.exports = Archiver = (function(superClass) {
           }
           results.push((function(k, s) {
             debug("Creating StreamArchiver for " + k);
-            return s._archiver = new Archiver.StreamArchiver(s, _this.options);
+            return s.archiver = new Archiver.StreamArchiver(s, _this.options);
           })(k, s));
         }
         return results;
@@ -60,7 +60,7 @@ module.exports = Archiver = (function(superClass) {
     }));
   }
 
-  Archiver.StreamArchiver = require("./stream_archiver");
+  Archiver.StreamArchiver = require("./stream");
 
   return Archiver;
 

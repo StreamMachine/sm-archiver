@@ -1,20 +1,20 @@
-var SegmentPuller, _,
+var BufferTransformer, _,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
 _ = require("underscore");
 
-module.exports = SegmentPuller = (function(superClass) {
-  extend(SegmentPuller, superClass);
+module.exports = BufferTransformer = (function(superClass) {
+  extend(BufferTransformer, superClass);
 
-  function SegmentPuller(stream) {
+  function BufferTransformer(stream) {
     this.stream = stream;
-    SegmentPuller.__super__.constructor.call(this, {
+    BufferTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
   }
 
-  SegmentPuller.prototype._transform = function(seg, encoding, cb) {
+  BufferTransformer.prototype._transform = function(seg, encoding, cb) {
     var dur;
     dur = this.stream.secsToOffset(seg.duration / 1000);
     return this.stream._rbuffer.range(seg.ts_actual, dur, (function(_this) {
@@ -50,8 +50,8 @@ module.exports = SegmentPuller = (function(superClass) {
     })(this));
   };
 
-  return SegmentPuller;
+  return BufferTransformer;
 
 })(require("stream").Transform);
 
-//# sourceMappingURL=segment_puller.js.map
+//# sourceMappingURL=buffer.js.map

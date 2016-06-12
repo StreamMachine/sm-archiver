@@ -1,31 +1,29 @@
-var PassThrough, WaveTransform, debug, fs, temp, waveform,
+var PassThrough, WaveformData, WaveformTransformer, debug, waveform,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
 waveform = require("sm-waveform");
 
+WaveformData = require("waveform-data");
+
 PassThrough = require("stream").PassThrough;
 
-temp = require("temp");
+debug = require("debug")("sm:archiver:transformers:waveform");
 
-fs = require("fs");
+module.exports = WaveformTransformer = (function(superClass) {
+  extend(WaveformTransformer, superClass);
 
-debug = require("debug")("sm-archiver");
-
-module.exports = WaveTransform = (function(superClass) {
-  extend(WaveTransform, superClass);
-
-  function WaveTransform(pps) {
+  function WaveformTransformer(pps) {
     this.pps = pps;
-    WaveTransform.__super__.constructor.call(this, {
+    WaveformTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
   }
 
-  WaveTransform.prototype._transform = function(obj, encoding, cb) {
+  WaveformTransformer.prototype._transform = function(obj, encoding, cb) {
     var pt;
     pt = new PassThrough();
-    debug("In WaveTransform for " + obj.id);
+    debug("In WaveformTransformer for " + obj.id);
     new waveform.Waveform(pt, {
       pixelsPerSecond: this.pps
     }, (function(_this) {
@@ -35,6 +33,7 @@ module.exports = WaveTransform = (function(superClass) {
         }
         obj.waveform = wave.asJSON();
         obj.waveform_json = JSON.stringify(obj.waveform);
+        obj.wavedata = WaveformData.create(obj.waveform);
         _this.push(obj);
         return cb();
       };
@@ -42,8 +41,8 @@ module.exports = WaveTransform = (function(superClass) {
     return pt.end(obj.cbuf);
   };
 
-  return WaveTransform;
+  return WaveformTransformer;
 
 })(require("stream").Transform);
 
-//# sourceMappingURL=wave_transform.js.map
+//# sourceMappingURL=waveform.js.map

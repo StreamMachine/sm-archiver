@@ -59,11 +59,11 @@ module.exports = class S3ArchiverStore
         prefix = "#{prefix}/#{key}"
         section = index[key]
         if section.id
-            return @storeSegment prefix,index[key]
+            return @storeSegment prefix,section
 
         debug "Storing #{prefix}/index.json"
         return @s3.putObjectAsync(Key:"#{prefix}/index.json",Body:JSON.stringify(@generateSection(section))) \
-            .then(@storeIndex(prefix,index[key]))
+            .then(@storeIndex(prefix,section))
 
     #----------
 
@@ -76,11 +76,11 @@ module.exports = class S3ArchiverStore
     #----------
 
     storeSegment: (prefix,segment) =>
-        debug "Storing #{prefix}.json"
         prefix = "#{prefix}.json"
         return @s3.headObjectAsync(Key:prefix) \
             .catch (error) =>
                 if error.statusCode == 404
+                    debug "Storing #{prefix}"
                     return @s3.putObjectAsync(Key:prefix,Body:JSON.stringify(segment))
                 return P.resolve()
 

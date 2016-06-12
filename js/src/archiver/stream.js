@@ -1,19 +1,15 @@
-var Debounce, PreviewTransformer, SegmentPuller, StreamArchiver, WaveformData, WaveformTransformer, _, debug, segmentKeys,
+var BufferTransformer, PreviewTransformer, StreamArchiver, WaveformTransformer, _, debug, segmentKeys,
   bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
-Debounce = require("streammachine/js/src/streammachine/util/debounce");
+_ = require("underscore");
+
+BufferTransformer = require("./transformers/buffer");
 
 WaveformTransformer = require("./transformers/waveform");
 
 PreviewTransformer = require("./transformers/preview");
-
-SegmentPuller = require("../segment_puller");
-
-WaveformData = require("waveform-data");
-
-_ = require("underscore");
 
 debug = require("debug")("sm:archiver:stream");
 
@@ -36,17 +32,21 @@ module.exports = StreamArchiver = (function(superClass) {
         return new StreamArchiver.Stores[store](_this.stream, options);
       };
     })(this));
-    this.seg_puller = new SegmentPuller(this.stream);
-    this.transformers = {
-      waveform: new WaveformTransformer(this.options.pixels_per_second),
-      preview: new PreviewTransformer(this._getResampleOptions)
-    };
-    this.seg_puller.pipe(this.transformers.waveform).pipe(this.transformers.preview);
-    this.transformers.preview.on("readable", (function(_this) {
+    this.transformers = [new BufferTransformer(this.stream), new WaveformTransformer(this.options.pixels_per_second)];
+    _.each(this.transformers, (function(_this) {
+      return function(transformer, index) {
+        var previous;
+        previous = _this.transformers[index - 1];
+        if (previous) {
+          return previous.pipe(transformer);
+        }
+      };
+    })(this));
+    _.last(this.transformers).on("readable", (function(_this) {
       return function() {
         var results, seg;
         results = [];
-        while (seg = _this.transformers.preview.read()) {
+        while (seg = _.last(_this.transformers).read()) {
           results.push(_this.segments[seg.id] = seg);
         }
         return results;
@@ -85,7 +85,7 @@ module.exports = StreamArchiver = (function(superClass) {
         for (j = 0, len1 = ref1.length; j < len1; j++) {
           seg = ref1[j];
           if (_this.segments[seg.id] == null) {
-            results.push(_this.seg_puller.write(seg));
+            results.push(_.first(_this.transformers).write(seg));
           } else {
             results.push(void 0);
           }
@@ -96,19 +96,35 @@ module.exports = StreamArchiver = (function(superClass) {
   }
 
   StreamArchiver.prototype.getPreview = function(cb) {
-    var preview;
-    preview = _.map(this.snapshot.segments, (function(_this) {
-      return function(segment) {
-        segment = _this.segments[segment.id];
-        if (!segment) {
-          return false;
+    var preview, previewTransformer;
+    preview = [];
+    if (!this.snapshot) {
+      return cb(null, preview);
+    }
+    previewTransformer = new PreviewTransformer(this._getResampleOptions);
+    previewTransformer.on("readable", (function(_this) {
+      return function() {
+        var results, segment;
+        results = [];
+        while (segment = previewTransformer.read()) {
+          results.push(preview.push(_.pick(segment, segmentKeys)));
         }
-        return _.pick(segment, segmentKeys);
+        return results;
       };
     })(this));
-    return cb(null, _.filter(preview, function(segment) {
-      return segment;
-    }));
+    previewTransformer.on("end", (function(_this) {
+      return function() {
+        return cb(null, preview);
+      };
+    })(this));
+    _.each(this.snapshot.segments, (function(_this) {
+      return function(segment) {
+        if (_this.segments[segment.id]) {
+          return previewTransformer.write(_this.segments[segment.id]);
+        }
+      };
+    })(this));
+    return previewTransformer.end();
   };
 
   StreamArchiver.prototype.getWaveform = function(id, cb) {
@@ -117,29 +133,6 @@ module.exports = StreamArchiver = (function(superClass) {
     } else {
       return cb(new Error("Not found"));
     }
-  };
-
-  StreamArchiver.prototype._updatePreview = function() {
-    var i, len, preview, ref, resample_options, seg, segp;
-    debug("Generating preview");
-    preview = [];
-    ref = this.snapshot.segments;
-    for (i = 0, len = ref.length; i < len; i++) {
-      seg = ref[i];
-      resample_options = this._getResampleOptions(seg.id);
-      segp = this.segments[seg.id] ? this.segments[seg.id].wavedata.resample(resample_options).adapter.data : _(resample_options.width * 2).times((function(_this) {
-        return function() {
-          return 0;
-        };
-      })(this));
-      preview.push(_.extend({}, seg, {
-        preview: segp
-      }));
-    }
-    this.preview = preview;
-    this.preview_json = JSON.stringify(this.preview);
-    this.emit("preview", this.preview, this.preview_json);
-    return debug("Preview generation complete");
   };
 
   StreamArchiver.prototype._getResampleOptions = function(segment) {
@@ -163,4 +156,4 @@ module.exports = StreamArchiver = (function(superClass) {
 
 })(require("events").EventEmitter);
 
-//# sourceMappingURL=stream_archiver.js.map
+//# sourceMappingURL=stream.js.map

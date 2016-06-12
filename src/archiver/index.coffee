@@ -33,12 +33,12 @@ module.exports = class Archiver extends require "streammachine/js/src/streammach
 
                 do (k,s) =>
                     debug "Creating StreamArchiver for #{k}"
-                    s._archiver = new Archiver.StreamArchiver s, @options
+                    s.archiver = new Archiver.StreamArchiver s, @options
 
         # create a server
         @server = new Server @, @options.port, @log.child(component:"server")
 
     #----------
 
-    @StreamArchiver: require "./stream_archiver"
+    @StreamArchiver: require "./stream"
 

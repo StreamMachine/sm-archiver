@@ -75,13 +75,13 @@ module.exports = S3ArchiverStore = (function() {
     prefix = prefix + "/" + key;
     section = index[key];
     if (section.id) {
-      return this.storeSegment(prefix, index[key]);
+      return this.storeSegment(prefix, section);
     }
     debug("Storing " + prefix + "/index.json");
     return this.s3.putObjectAsync({
       Key: prefix + "/index.json",
       Body: JSON.stringify(this.generateSection(section))
-    }).then(this.storeIndex(prefix, index[key]));
+    }).then(this.storeIndex(prefix, section));
   };
 
   S3ArchiverStore.prototype.generateSection = function(section) {
@@ -96,13 +96,13 @@ module.exports = S3ArchiverStore = (function() {
   };
 
   S3ArchiverStore.prototype.storeSegment = function(prefix, segment) {
-    debug("Storing " + prefix + ".json");
     prefix = prefix + ".json";
     return this.s3.headObjectAsync({
       Key: prefix
     })["catch"]((function(_this) {
       return function(error) {
         if (error.statusCode === 404) {
+          debug("Storing " + prefix);
           return _this.s3.putObjectAsync({
             Key: prefix,
             Body: JSON.stringify(segment)
