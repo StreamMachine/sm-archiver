@@ -31,10 +31,7 @@ module.exports = class Server
             new @core.Outputs.live_streaming req.stream, req:req, res:res, format:req.params.format
 
         @app.get "/:stream/info", (req,res) =>
-            info = format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream.archiver?
-            json = JSON.stringify info
-
-            res.json json
+            res.json format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream.archiver?
 
         @app.get "/:stream/preview", (req,res) =>
             req.stream.archiver.getPreview (err,preview) =>
