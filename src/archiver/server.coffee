@@ -34,16 +34,20 @@ module.exports = class Server
             res.json format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream.archiver?
 
         @app.get "/:stream/preview", (req,res) =>
+            if !req.stream.archiver
+                return res.status(404).json status:404,error:"Stream not archived"
             req.stream.archiver.getPreview (err,preview) =>
                 if err
-                    res.status(500).end "No preview available"
+                    res.status(404).json status:404,error:"Preview not found"
                 else
                     res.json preview
 
         @app.get "/:stream/waveform/:seg", (req,res) =>
+            if !req.stream.archiver
+                return res.status(404).json status:404,error:"Stream not archived"
             req.stream.archiver.getWaveform req.params.seg, (err,waveform) =>
                 if err
-                    res.status(404).end "Waveform not found."
+                    res.status(404).json status:404,error:"Waveform not found"
                 else
                     res.json waveform
 

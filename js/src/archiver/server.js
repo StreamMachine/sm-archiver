@@ -54,21 +54,27 @@ module.exports = Server = (function() {
     })(this));
     this.app.get("/:stream/info", (function(_this) {
       return function(req, res) {
-        var info, json;
-        info = {
+        return res.json({
           format: req.stream.opts.format,
           codec: req.stream.opts.codec,
           archived: req.stream.archiver != null
-        };
-        json = JSON.stringify(info);
-        return res.json(json);
+        });
       };
     })(this));
     this.app.get("/:stream/preview", (function(_this) {
       return function(req, res) {
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
         return req.stream.archiver.getPreview(function(err, preview) {
           if (err) {
-            return res.status(500).end("No preview available");
+            return res.status(404).json({
+              status: 404,
+              error: "Preview not found"
+            });
           } else {
             return res.json(preview);
           }
@@ -77,9 +83,18 @@ module.exports = Server = (function() {
     })(this));
     this.app.get("/:stream/waveform/:seg", (function(_this) {
       return function(req, res) {
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
         return req.stream.archiver.getWaveform(req.params.seg, function(err, waveform) {
           if (err) {
-            return res.status(404).end("Waveform not found.");
+            return res.status(404).json({
+              status: 404,
+              error: "Waveform not found"
+            });
           } else {
             return res.json(waveform);
           }
