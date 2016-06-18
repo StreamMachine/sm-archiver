@@ -1,98 +1,42 @@
-debug = require("debug")("sm:archiver:store:s3")
-
 P = require "bluebird"
 AWS = require "aws-sdk"
 _ = require "underscore"
-moment = require "moment"
 
-module.exports = class S3ArchiverStore
-    constructor: (@stream,@options) ->
+debug = require("debug")("sm:archiver:stores:s3")
+
+module.exports = class S3Store
+    constructor:(@stream,@options) ->
+        _.extend(@, new AWS.S3 @options)
+        P.promisifyAll @
         @prefix = "sm-archiver/#{@stream.key}"
-        @s3 = new S3ArchiverStore.S3 @options
-        @stream.on "hls_snapshot", (snapshot) =>
-            debug "HLS Snapshot for #{@stream.key} (#{snapshot.segments.length} segments of #{snapshot.segment_duration} seconds)"
-            @generateIndex(snapshot) \
-                .then(@storeFullIndex) \
-                .catch((error) => debug error)
+        @format = @stream.opts.format
+        debug "Created"
 
-    #----------
 
-    generateIndex: (snapshot) =>
-        debug "Creating index for #{@stream.key}"
-        return P.reduce snapshot.segments,@indexSegment,{}
+    getSegmentById:(id) ->
+        @getFile("#{@prefix}/index/segments/#{id}") \
+            .then (data) =>
+                @getSegment(data.Body)
 
-    #----------
+    getSegment:(key) ->
+        @getFile("#{@prefix}/#{key}.json") \
+            .then (data) =>
+                JSON.parse(data.Body)
 
-    indexSegment: (index,segment) =>
-        ts = moment(segment.ts)
+    getFile:(key) ->
+        @getObjectAsync(Key:key) \
+            .catch (error) =>
+                debug "GET Error for #{key}: #{error}"
+                throw error
 
-        year = String(ts.year())
-        month = String(ts.month() + 1)
-        date = String(ts.date())
-        hour = String(ts.hour())
-        minute = String(ts.minute())
-        second = String(ts.second())
-
-        index[year] = index[year] || {}
-        index[year][month] = index[year][month] || {}
-        index[year][month][date] = index[year][month][date] || {}
-        index[year][month][date][hour] = index[year][month][date][hour] || {}
-        index[year][month][date][hour][minute] = index[year][month][date][hour][minute] || {}
-        index[year][month][date][hour][minute][second] = segment
-        return index
-
-    #----------
-
-    storeFullIndex: (index) =>
-        debug "Storing index for #{@stream.key}"
-        return @storeIndex @prefix,index
-
-    #----------
-
-    storeIndex: (prefix,index) =>
-        return P.each(Object.keys(index),(key) => \
-            return @storeIndexSection(prefix,key,index))
-
-    #----------
-
-    storeIndexSection: (prefix,key,index) =>
-        prefix = "#{prefix}/#{key}"
-        section = index[key]
-        if section.id
-            return @storeSegment prefix,section
-
-        debug "Storing #{prefix}/index.json"
-        return @s3.putObjectAsync(Key:"#{prefix}/index.json",Body:JSON.stringify(@generateSection(section))) \
-            .then(@storeIndex(prefix,section))
-
-    #----------
-
-    generateSection: (section) =>
-        return _.mapObject section,(subSection) =>
-            if subSection.id
-                return subSection.id
-            return @generateSection(subSection)
-
-    #----------
-
-    storeSegment: (prefix,segment) =>
-        prefix = "#{prefix}.json"
-        return @s3.headObjectAsync(Key:prefix) \
+    putFileIfNotExists: (key,body,options) ->
+        return @headObjectAsync(Key:key) \
             .catch (error) =>
                 if error.statusCode == 404
-                    debug "Storing #{prefix}"
-                    return @s3.putObjectAsync(Key:prefix,Body:JSON.stringify(segment))
-                return P.resolve()
-
-    #----------
-
-    class @S3
-        constructor:(@options) ->
-            _.extend(@, new AWS.S3 @options)
-            P.promisifyAll @
-
-        #----------
-
-    #----------
+                    debug "Storing #{key}"
+                    return @putObjectAsync(_.extend({}, options || {}, Key:key,Body:body)) \
+                        .catch (error) ->
+                            debug "PUT Error for #{key}: #{error}"
+                debug "HEAD Error for #{key}: #{error}"
 
 #----------

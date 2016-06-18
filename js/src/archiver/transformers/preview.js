@@ -12,11 +12,12 @@ module.exports = PreviewTransformer = (function(superClass) {
     PreviewTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
+    debug("Created");
   }
 
   PreviewTransformer.prototype._transform = function(obj, encoding, cb) {
     var resample_options;
-    debug("In PreviewTransformer for " + obj.id);
+    debug("Segment " + obj.id);
     resample_options = this._getResampleOptions(obj);
     obj.preview = obj.wavedata.resample(resample_options).adapter.data;
     this.push(obj);
