@@ -18,12 +18,13 @@ module.exports = WaveformTransformer = (function(superClass) {
     WaveformTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
+    debug("Created");
   }
 
   WaveformTransformer.prototype._transform = function(obj, encoding, cb) {
     var pt;
     pt = new PassThrough();
-    debug("In WaveformTransformer for " + obj.id);
+    debug("Segment " + obj.id);
     new waveform.Waveform(pt, {
       pixelsPerSecond: this.pps
     }, (function(_this) {
@@ -32,7 +33,6 @@ module.exports = WaveformTransformer = (function(superClass) {
           return cb(err);
         }
         obj.waveform = wave.asJSON();
-        obj.waveform_json = JSON.stringify(obj.waveform);
         obj.wavedata = WaveformData.create(obj.waveform);
         _this.push(obj);
         return cb();

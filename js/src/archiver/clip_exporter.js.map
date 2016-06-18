@@ -1,7 +1,7 @@
 {
   "version": 3,
   "file": "clip_exporter.js",
-  "sourceRoot": "../../src/",
+  "sourceRoot": "../../../src/archiver/",
   "sources": [
     "clip_exporter.coffee"
   ],

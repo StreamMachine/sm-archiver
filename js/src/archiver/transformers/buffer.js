@@ -1,8 +1,10 @@
-var BufferTransformer, _,
+var BufferTransformer, _, debug,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
 _ = require("underscore");
+
+debug = require("debug")("sm:archiver:transformers:buffer");
 
 module.exports = BufferTransformer = (function(superClass) {
   extend(BufferTransformer, superClass);
@@ -12,14 +14,16 @@ module.exports = BufferTransformer = (function(superClass) {
     BufferTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
+    debug("Created");
   }
 
   BufferTransformer.prototype._transform = function(seg, encoding, cb) {
     var dur;
+    debug("Segment " + seg.id);
     dur = this.stream.secsToOffset(seg.duration / 1000);
     return this.stream._rbuffer.range(seg.ts_actual, dur, (function(_this) {
       return function(err, chunks) {
-        var b, buffers, cbuf, duration, i, len, length, meta, obj;
+        var b, buffers, cbuf, duration, i, len, length, meta;
         if (err) {
           console.error("Error getting segment rewind: " + err);
           cb();
@@ -39,12 +43,11 @@ module.exports = BufferTransformer = (function(superClass) {
           }
         }
         cbuf = Buffer.concat(buffers, length);
-        obj = _.extend({}, seg, {
+        _this.push(_.extend(seg, {
           cbuf: cbuf,
           duration: duration,
           meta: meta
-        });
-        _this.push(obj);
+        }));
         return cb();
       };
     })(this));

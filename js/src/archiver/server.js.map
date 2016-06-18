@@ -1,7 +1,7 @@
 {
   "version": 3,
   "file": "server.js",
-  "sourceRoot": "../../src/",
+  "sourceRoot": "../../../src/archiver/",
   "sources": [
     "server.coffee"
   ],

@@ -1,8 +1,10 @@
 _ = require "underscore"
 
-BufferTransformer   = require "./transformers/buffer"
-WaveformTransformer   = require "./transformers/waveform"
-PreviewTransformer   = require "./transformers/preview"
+BufferTransformer = require "./transformers/buffer"
+WaveformTransformer = require "./transformers/waveform"
+PreviewTransformer = require "./transformers/preview"
+S3StoreTransformer = require "./transformers/s3"
+S3Store = require "./stores/s3"
 
 debug = require("debug")("sm:archiver:stream")
 
@@ -21,19 +23,19 @@ segmentKeys = [
 
 module.exports = class StreamArchiver extends require("events").EventEmitter
     constructor: (@stream,@options) ->
+        @stores = {}
         @segments = {}
         @snapshot = null
-        @preview = null
-        @preview_json = null
 
-        @stores = _.mapObject(_.filter(@options.stores || [], 'enabled'), (options,store) =>
-            debug "Creating #{store} Store for #{@stream.key} Stream"
-            return new StreamArchiver.Stores[store](@stream,options)
-        )
         @transformers = [
             new BufferTransformer(@stream),
             new WaveformTransformer(@options.pixels_per_second)
         ]
+
+        if @options.stores?.s3?.enabled
+            @stores.s3 = new S3Store(@stream,@options.stores.s3)
+            @transformers.push new S3StoreTransformer(@stores.s3)
+
         _.each @transformers, (transformer, index) =>
             previous = @transformers[index - 1];
             if (previous)
@@ -41,9 +43,8 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
         _.last(@transformers).on "readable", =>
             while seg = _.last(@transformers).read()
-                @segments[seg.id] = seg
+                debug "Segment #{seg.id} archived"
 
-        # process snapshots to look for new segments
         @stream.source.on "hls_snapshot", (snapshot) =>
             debug "HLS Snapshot received via broadcast from #{@stream.key}"
             @stream.emit "hls_snapshot", snapshot
@@ -57,38 +58,43 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
             debug "HLS Snapshot for #{@stream.key} (#{snapshot.segments.length} segments)"
             debug "Rewind extents are ", @stream._rbuffer.first(), @stream._rbuffer.last()
             @snapshot = snapshot
-            # are there segments to expire? (ids that are present in @segments
-            # but not in the snapshot)
+
             for id in _.difference(Object.keys(@segments),_.map(@snapshot.segments,(s) -> s.id.toString()))
-                debug "Expiring segment #{id} from waveform cache"
+                debug "Expiring segment #{id} from cache"
                 delete @segments[id]
 
             for seg in @snapshot.segments
-                if !@segments[seg.id]?
+                if !@segments[seg.id]
+                    @segments[seg.id] = seg
                     _.first(@transformers).write seg
 
     #----------
 
     getPreview: (cb) ->
         preview = []
-        return cb(null, preview) if !@snapshot
+        snapshot = @snapshot
+        segments = @segments
+        return cb(null, preview) if !snapshot
         previewTransformer = new PreviewTransformer(@_getResampleOptions)
         previewTransformer.on "readable", =>
             while segment = previewTransformer.read()
                 preview.push(_.pick(segment, segmentKeys))
         previewTransformer.on "end", =>
             cb null, preview
-        _.each @snapshot.segments, (segment) =>
-            previewTransformer.write(@segments[segment.id]) if @segments[segment.id]
+        _.each snapshot.segments, (segment) =>
+            previewTransformer.write(segments[segment.id]) if segments[segment.id]?.waveform
         previewTransformer.end()
 
     #----------
 
     getWaveform: (id,cb) ->
-        if @segments[id]
-            cb null, @segments[id].waveform
-        else
-            cb new Error("Not found")
+        if !@stores.s3
+            return cb(null, @segments[id].waveform) if !@segments[id]?.waveform
+            return cb(new Error("Not found"))
+        @stores.s3.getSegmentById(id) \
+            .then((segment) -> return cb(null, segment.waveform)) \
+            .catch(() -> return cb(new Error("Not found")))
+
 
     #----------
 
@@ -97,7 +103,5 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
         if pseg_width < segment.wavedata.adapter.scale
             return scale: segment.wavedata.adapter.scale
         return width: pseg_width
-
-    @Stores: s3:require "./stores/s3"
 
 #----------

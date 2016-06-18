@@ -1,4 +1,4 @@
-var BufferTransformer, PreviewTransformer, StreamArchiver, WaveformTransformer, _, debug, segmentKeys,
+var BufferTransformer, PreviewTransformer, S3Store, S3StoreTransformer, StreamArchiver, WaveformTransformer, _, debug, segmentKeys,
   bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
@@ -11,6 +11,10 @@ WaveformTransformer = require("./transformers/waveform");
 
 PreviewTransformer = require("./transformers/preview");
 
+S3StoreTransformer = require("./transformers/s3");
+
+S3Store = require("./stores/s3");
+
 debug = require("debug")("sm:archiver:stream");
 
 segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "preview"];
@@ -18,21 +22,19 @@ segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length"
 module.exports = StreamArchiver = (function(superClass) {
   extend(StreamArchiver, superClass);
 
-  function StreamArchiver(stream, options1) {
+  function StreamArchiver(stream, options) {
+    var ref, ref1;
     this.stream = stream;
-    this.options = options1;
+    this.options = options;
     this._getResampleOptions = bind(this._getResampleOptions, this);
+    this.stores = {};
     this.segments = {};
     this.snapshot = null;
-    this.preview = null;
-    this.preview_json = null;
-    this.stores = _.mapObject(_.filter(this.options.stores || [], 'enabled'), (function(_this) {
-      return function(options, store) {
-        debug("Creating " + store + " Store for " + _this.stream.key + " Stream");
-        return new StreamArchiver.Stores[store](_this.stream, options);
-      };
-    })(this));
     this.transformers = [new BufferTransformer(this.stream), new WaveformTransformer(this.options.pixels_per_second)];
+    if ((ref = this.options.stores) != null ? (ref1 = ref.s3) != null ? ref1.enabled : void 0 : void 0) {
+      this.stores.s3 = new S3Store(this.stream, this.options.stores.s3);
+      this.transformers.push(new S3StoreTransformer(this.stores.s3));
+    }
     _.each(this.transformers, (function(_this) {
       return function(transformer, index) {
         var previous;
@@ -47,7 +49,7 @@ module.exports = StreamArchiver = (function(superClass) {
         var results, seg;
         results = [];
         while (seg = _.last(_this.transformers).read()) {
-          results.push(_this.segments[seg.id] = seg);
+          results.push(debug("Segment " + seg.id + " archived"));
         }
         return results;
       };
@@ -68,23 +70,24 @@ module.exports = StreamArchiver = (function(superClass) {
     })(this));
     this.stream.on("hls_snapshot", (function(_this) {
       return function(snapshot) {
-        var i, id, j, len, len1, ref, ref1, results, seg;
+        var i, id, j, len, len1, ref2, ref3, results, seg;
         debug("HLS Snapshot for " + _this.stream.key + " (" + snapshot.segments.length + " segments)");
         debug("Rewind extents are ", _this.stream._rbuffer.first(), _this.stream._rbuffer.last());
         _this.snapshot = snapshot;
-        ref = _.difference(Object.keys(_this.segments), _.map(_this.snapshot.segments, function(s) {
+        ref2 = _.difference(Object.keys(_this.segments), _.map(_this.snapshot.segments, function(s) {
           return s.id.toString();
         }));
-        for (i = 0, len = ref.length; i < len; i++) {
-          id = ref[i];
-          debug("Expiring segment " + id + " from waveform cache");
+        for (i = 0, len = ref2.length; i < len; i++) {
+          id = ref2[i];
+          debug("Expiring segment " + id + " from cache");
           delete _this.segments[id];
         }
-        ref1 = _this.snapshot.segments;
+        ref3 = _this.snapshot.segments;
         results = [];
-        for (j = 0, len1 = ref1.length; j < len1; j++) {
-          seg = ref1[j];
-          if (_this.segments[seg.id] == null) {
+        for (j = 0, len1 = ref3.length; j < len1; j++) {
+          seg = ref3[j];
+          if (!_this.segments[seg.id]) {
+            _this.segments[seg.id] = seg;
             results.push(_.first(_this.transformers).write(seg));
           } else {
             results.push(void 0);
@@ -96,9 +99,11 @@ module.exports = StreamArchiver = (function(superClass) {
   }
 
   StreamArchiver.prototype.getPreview = function(cb) {
-    var preview, previewTransformer;
+    var preview, previewTransformer, segments, snapshot;
     preview = [];
-    if (!this.snapshot) {
+    snapshot = this.snapshot;
+    segments = this.segments;
+    if (!snapshot) {
       return cb(null, preview);
     }
     previewTransformer = new PreviewTransformer(this._getResampleOptions);
@@ -117,10 +122,11 @@ module.exports = StreamArchiver = (function(superClass) {
         return cb(null, preview);
       };
     })(this));
-    _.each(this.snapshot.segments, (function(_this) {
+    _.each(snapshot.segments, (function(_this) {
       return function(segment) {
-        if (_this.segments[segment.id]) {
-          return previewTransformer.write(_this.segments[segment.id]);
+        var ref;
+        if ((ref = segments[segment.id]) != null ? ref.waveform : void 0) {
+          return previewTransformer.write(segments[segment.id]);
         }
       };
     })(this));
@@ -128,11 +134,18 @@ module.exports = StreamArchiver = (function(superClass) {
   };
 
   StreamArchiver.prototype.getWaveform = function(id, cb) {
-    if (this.segments[id]) {
-      return cb(null, this.segments[id].waveform);
-    } else {
+    var ref;
+    if (!this.stores.s3) {
+      if (!((ref = this.segments[id]) != null ? ref.waveform : void 0)) {
+        return cb(null, this.segments[id].waveform);
+      }
       return cb(new Error("Not found"));
     }
+    return this.stores.s3.getSegmentById(id).then(function(segment) {
+      return cb(null, segment.waveform);
+    })["catch"](function() {
+      return cb(new Error("Not found"));
+    });
   };
 
   StreamArchiver.prototype._getResampleOptions = function(segment) {
@@ -146,10 +159,6 @@ module.exports = StreamArchiver = (function(superClass) {
     return {
       width: pseg_width
     };
-  };
-
-  StreamArchiver.Stores = {
-    s3: require("./stores/s3")
   };
 
   return StreamArchiver;

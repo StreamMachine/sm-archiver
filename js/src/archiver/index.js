@@ -6,7 +6,7 @@ SlaveIO = require("streammachine/js/src/streammachine/slave/slave_io");
 
 Logger = require("streammachine/js/src/streammachine/logger");
 
-Server = require("../server");
+Server = require("./server");
 
 debug = require("debug")("sm:archiver");
 
