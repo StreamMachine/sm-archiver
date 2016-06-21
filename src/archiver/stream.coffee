@@ -2,6 +2,7 @@ _ = require "underscore"
 
 BufferTransformer = require "./transformers/buffer"
 WaveformTransformer = require "./transformers/waveform"
+WavedataTransformer = require "./transformers/wavedata"
 PreviewTransformer = require "./transformers/preview"
 S3StoreTransformer = require "./transformers/s3"
 S3Store = require "./stores/s3"
@@ -68,21 +69,30 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
                     @segments[seg.id] = seg
                     _.first(@transformers).write seg
 
+        debug("Created")
+
     #----------
 
-    getPreview: (cb) ->
+    getPreview: (options, cb) ->
+        return cb(null, []) if !@snapshot
+        snapshot = _.map @snapshot.segments,(segment) =>
+            return @segments[segment.id]
+        segments = _.filter snapshot,(segment) =>
+            return segment?.waveform
+        @generatePreview segments,cb
+
+    generatePreview: (segments,cb) ->
         preview = []
-        snapshot = @snapshot
-        segments = @segments
-        return cb(null, preview) if !snapshot
-        previewTransformer = new PreviewTransformer(@_getResampleOptions)
+        wavedataTransformer = new WavedataTransformer
+        previewTransformer = new PreviewTransformer @options.preview_width,segments.length
+        wavedataTransformer.pipe previewTransformer
         previewTransformer.on "readable", =>
             while segment = previewTransformer.read()
                 preview.push(_.pick(segment, segmentKeys))
         previewTransformer.on "end", =>
             cb null, preview
-        _.each snapshot.segments, (segment) =>
-            previewTransformer.write(segments[segment.id]) if segments[segment.id]?.waveform
+        _.each segments, (segment) =>
+            wavedataTransformer.write(segment)
         previewTransformer.end()
 
     #----------
@@ -95,13 +105,6 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
             .then((segment) -> return cb(null, segment.waveform)) \
             .catch(() -> return cb(new Error("Not found")))
 
-
     #----------
-
-    _getResampleOptions: (segment) =>
-        pseg_width = Math.ceil( @options.preview_width / @snapshot.segments.length )
-        if pseg_width < segment.wavedata.adapter.scale
-            return scale: segment.wavedata.adapter.scale
-        return width: pseg_width
 
 #----------

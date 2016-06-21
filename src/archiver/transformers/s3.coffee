@@ -15,8 +15,7 @@ segmentKeys = [
     "duration",
     "discontinuitySeq",
     "pts",
-    "waveform",
-    "wavedata"
+    "waveform"
 ]
 
 module.exports = class S3StoreTransformer extends require("stream").Transform

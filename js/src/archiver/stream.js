@@ -1,5 +1,4 @@
-var BufferTransformer, PreviewTransformer, S3Store, S3StoreTransformer, StreamArchiver, WaveformTransformer, _, debug, segmentKeys,
-  bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+var BufferTransformer, PreviewTransformer, S3Store, S3StoreTransformer, StreamArchiver, WavedataTransformer, WaveformTransformer, _, debug, segmentKeys,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -8,6 +7,8 @@ _ = require("underscore");
 BufferTransformer = require("./transformers/buffer");
 
 WaveformTransformer = require("./transformers/waveform");
+
+WavedataTransformer = require("./transformers/wavedata");
 
 PreviewTransformer = require("./transformers/preview");
 
@@ -22,11 +23,10 @@ segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length"
 module.exports = StreamArchiver = (function(superClass) {
   extend(StreamArchiver, superClass);
 
-  function StreamArchiver(stream, options) {
+  function StreamArchiver(stream, options1) {
     var ref, ref1;
     this.stream = stream;
-    this.options = options;
-    this._getResampleOptions = bind(this._getResampleOptions, this);
+    this.options = options1;
     this.stores = {};
     this.segments = {};
     this.snapshot = null;
@@ -96,17 +96,33 @@ module.exports = StreamArchiver = (function(superClass) {
         return results;
       };
     })(this));
+    debug("Created");
   }
 
-  StreamArchiver.prototype.getPreview = function(cb) {
-    var preview, previewTransformer, segments, snapshot;
-    preview = [];
-    snapshot = this.snapshot;
-    segments = this.segments;
-    if (!snapshot) {
-      return cb(null, preview);
+  StreamArchiver.prototype.getPreview = function(options, cb) {
+    var segments, snapshot;
+    if (!this.snapshot) {
+      return cb(null, []);
     }
-    previewTransformer = new PreviewTransformer(this._getResampleOptions);
+    snapshot = _.map(this.snapshot.segments, (function(_this) {
+      return function(segment) {
+        return _this.segments[segment.id];
+      };
+    })(this));
+    segments = _.filter(snapshot, (function(_this) {
+      return function(segment) {
+        return segment != null ? segment.waveform : void 0;
+      };
+    })(this));
+    return this.generatePreview(segments, cb);
+  };
+
+  StreamArchiver.prototype.generatePreview = function(segments, cb) {
+    var preview, previewTransformer, wavedataTransformer;
+    preview = [];
+    wavedataTransformer = new WavedataTransformer;
+    previewTransformer = new PreviewTransformer(this.options.preview_width, segments.length);
+    wavedataTransformer.pipe(previewTransformer);
     previewTransformer.on("readable", (function(_this) {
       return function() {
         var results, segment;
@@ -122,12 +138,9 @@ module.exports = StreamArchiver = (function(superClass) {
         return cb(null, preview);
       };
     })(this));
-    _.each(snapshot.segments, (function(_this) {
+    _.each(segments, (function(_this) {
       return function(segment) {
-        var ref;
-        if ((ref = segments[segment.id]) != null ? ref.waveform : void 0) {
-          return previewTransformer.write(segments[segment.id]);
-        }
+        return wavedataTransformer.write(segment);
       };
     })(this));
     return previewTransformer.end();
@@ -146,19 +159,6 @@ module.exports = StreamArchiver = (function(superClass) {
     })["catch"](function() {
       return cb(new Error("Not found"));
     });
-  };
-
-  StreamArchiver.prototype._getResampleOptions = function(segment) {
-    var pseg_width;
-    pseg_width = Math.ceil(this.options.preview_width / this.snapshot.segments.length);
-    if (pseg_width < segment.wavedata.adapter.scale) {
-      return {
-        scale: segment.wavedata.adapter.scale
-      };
-    }
-    return {
-      width: pseg_width
-    };
   };
 
   return StreamArchiver;
