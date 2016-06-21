@@ -3,6 +3,8 @@ compression = require "compression"
 
 ClipExporter = require "./clip_exporter"
 
+debug = require("debug")("sm:archiver:server")
+
 module.exports = class Server
     constructor: (@core,@port,@log) ->
         @app = express()
@@ -36,7 +38,7 @@ module.exports = class Server
         @app.get "/:stream/preview", (req,res) =>
             if !req.stream.archiver
                 return res.status(404).json status:404,error:"Stream not archived"
-            req.stream.archiver.getPreview (err,preview) =>
+            req.stream.archiver.getPreview req.query,(err,preview) =>
                 if err
                     res.status(404).json status:404,error:"Preview not found"
                 else
@@ -57,4 +59,7 @@ module.exports = class Server
 
         # -- Listen! -- #
 
-        @_server = @app.listen @port
+        @_server = @app.listen @port,() =>
+            debug("Listing on port #{@port}")
+
+        debug("Created")

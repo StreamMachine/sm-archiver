@@ -12,7 +12,7 @@ S3Store = require("../stores/s3");
 
 debug = require("debug")("sm:archiver:transformers:stores:s3");
 
-segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "waveform", "wavedata"];
+segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "waveform"];
 
 module.exports = S3StoreTransformer = (function(superClass) {
   extend(S3StoreTransformer, superClass);

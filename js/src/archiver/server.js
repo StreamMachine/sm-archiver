@@ -1,10 +1,12 @@
-var ClipExporter, Server, compression, express;
+var ClipExporter, Server, compression, debug, express;
 
 express = require("express");
 
 compression = require("compression");
 
 ClipExporter = require("./clip_exporter");
+
+debug = require("debug")("sm:archiver:server");
 
 module.exports = Server = (function() {
   function Server(core, port, log) {
@@ -69,7 +71,7 @@ module.exports = Server = (function() {
             error: "Stream not archived"
           });
         }
-        return req.stream.archiver.getPreview(function(err, preview) {
+        return req.stream.archiver.getPreview(req.query, function(err, preview) {
           if (err) {
             return res.status(404).json({
               status: 404,
@@ -109,7 +111,12 @@ module.exports = Server = (function() {
         });
       };
     })(this));
-    this._server = this.app.listen(this.port);
+    this._server = this.app.listen(this.port, (function(_this) {
+      return function() {
+        return debug("Listing on port " + _this.port);
+      };
+    })(this));
+    debug("Created");
   }
 
   return Server;
