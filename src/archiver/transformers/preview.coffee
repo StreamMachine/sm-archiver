@@ -16,8 +16,11 @@ module.exports = class PreviewTransformer extends require("stream").Transform
         cb()
 
     _getResampleOptions: (segment) =>
-        if @psegWidth < segment.wavedata.adapter.scale
+        if @_getSamplesPerPixel(segment) < segment.wavedata.adapter.scale
             return scale:segment.wavedata.adapter.scale
         return width:@psegWidth
+
+    _getSamplesPerPixel: (segment) =>
+        return Math.floor(segment.wavedata.duration * segment.wavedata.adapter.sample_rate / @psegWidth)
 
     #----------

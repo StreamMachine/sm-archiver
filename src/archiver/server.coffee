@@ -1,3 +1,4 @@
+moment = require "moment"
 express = require "express"
 compression = require "compression"
 
@@ -36,9 +37,12 @@ module.exports = class Server
             res.json format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream.archiver?
 
         @app.get "/:stream/preview", (req,res) =>
+            options = {}
             if !req.stream.archiver
                 return res.status(404).json status:404,error:"Stream not archived"
-            req.stream.archiver.getPreview req.query,(err,preview) =>
+            options.from = moment(req.query.from, req.query.format) if req.query.from
+            options.to = moment(req.query.to, req.query.format) if req.query.to
+            req.stream.archiver.getPreview options,(err,preview) =>
                 if err
                     res.status(404).json status:404,error:"Preview not found"
                 else

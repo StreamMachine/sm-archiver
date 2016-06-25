@@ -1,7 +1,6 @@
 P = require "bluebird"
 _ = require "underscore"
 moment = require "moment"
-S3Store = require "../stores/s3"
 
 debug = require("debug")("sm:archiver:transformers:stores:s3")
 
@@ -35,18 +34,11 @@ module.exports = class S3StoreTransformer extends require("stream").Transform
     #----------
 
     storeSegment: (segment) ->
-        ts = moment(segment.ts)
-        year = String(ts.year())
-        month = String(ts.month() + 1)
-        date = String(ts.date())
-        hour = String(ts.hour())
-        minute = String(ts.minute())
-        second = String(ts.second())
-        key = "#{year}/#{month}/#{date}/#{hour}/#{minute}/#{second}"
+        key = @s3.getKey segment
         return P.all([
-            @s3.putFileIfNotExists("#{@s3.prefix}/#{key}.json", JSON.stringify(_.pick(segment, segmentKeys)), ContentType:'application/json'),
-            @s3.putFileIfNotExists("#{@s3.prefix}/#{key}.#{@s3.format}", segment.cbuf),
-            @s3.putFileIfNotExists("#{@s3.prefix}/index/segments/#{segment.id}", key)
+            @s3.putFileIfNotExists("json/#{key}.json", JSON.stringify(_.pick(segment, segmentKeys)), ContentType:'application/json'),
+            @s3.putFileIfNotExists("audio/#{key}.#{@s3.format}", segment.cbuf),
+            @s3.putFileIfNotExists("index/segments/#{segment.id}", key)
         ])
 
     #----------

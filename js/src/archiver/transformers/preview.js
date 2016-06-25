@@ -11,6 +11,7 @@ module.exports = PreviewTransformer = (function(superClass) {
   function PreviewTransformer(width, length) {
     this.width = width;
     this.length = length;
+    this._getSamplesPerPixel = bind(this._getSamplesPerPixel, this);
     this._getResampleOptions = bind(this._getResampleOptions, this);
     this.psegWidth = Math.ceil(this.width / this.length);
     PreviewTransformer.__super__.constructor.call(this, {
@@ -29,7 +30,7 @@ module.exports = PreviewTransformer = (function(superClass) {
   };
 
   PreviewTransformer.prototype._getResampleOptions = function(segment) {
-    if (this.psegWidth < segment.wavedata.adapter.scale) {
+    if (this._getSamplesPerPixel(segment) < segment.wavedata.adapter.scale) {
       return {
         scale: segment.wavedata.adapter.scale
       };
@@ -37,6 +38,10 @@ module.exports = PreviewTransformer = (function(superClass) {
     return {
       width: this.psegWidth
     };
+  };
+
+  PreviewTransformer.prototype._getSamplesPerPixel = function(segment) {
+    return Math.floor(segment.wavedata.duration * segment.wavedata.adapter.sample_rate / this.psegWidth);
   };
 
   return PreviewTransformer;

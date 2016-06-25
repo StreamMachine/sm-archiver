@@ -1,4 +1,4 @@
-var P, S3Store, S3StoreTransformer, _, debug, moment, segmentKeys,
+var P, S3StoreTransformer, _, debug, moment, segmentKeys,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -7,8 +7,6 @@ P = require("bluebird");
 _ = require("underscore");
 
 moment = require("moment");
-
-S3Store = require("../stores/s3");
 
 debug = require("debug")("sm:archiver:transformers:stores:s3");
 
@@ -36,19 +34,12 @@ module.exports = S3StoreTransformer = (function(superClass) {
   };
 
   S3StoreTransformer.prototype.storeSegment = function(segment) {
-    var date, hour, key, minute, month, second, ts, year;
-    ts = moment(segment.ts);
-    year = String(ts.year());
-    month = String(ts.month() + 1);
-    date = String(ts.date());
-    hour = String(ts.hour());
-    minute = String(ts.minute());
-    second = String(ts.second());
-    key = year + "/" + month + "/" + date + "/" + hour + "/" + minute + "/" + second;
+    var key;
+    key = this.s3.getKey(segment);
     return P.all([
-      this.s3.putFileIfNotExists(this.s3.prefix + "/" + key + ".json", JSON.stringify(_.pick(segment, segmentKeys)), {
+      this.s3.putFileIfNotExists("json/" + key + ".json", JSON.stringify(_.pick(segment, segmentKeys)), {
         ContentType: 'application/json'
-      }), this.s3.putFileIfNotExists(this.s3.prefix + "/" + key + "." + this.s3.format, segment.cbuf), this.s3.putFileIfNotExists(this.s3.prefix + "/index/segments/" + segment.id, key)
+      }), this.s3.putFileIfNotExists("audio/" + key + "." + this.s3.format, segment.cbuf), this.s3.putFileIfNotExists("index/segments/" + segment.id, key)
     ]);
   };
 
