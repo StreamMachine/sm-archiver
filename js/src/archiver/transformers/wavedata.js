@@ -16,11 +16,11 @@ module.exports = WavedataTransformer = (function(superClass) {
     debug("Created");
   }
 
-  WavedataTransformer.prototype._transform = function(obj, encoding, cb) {
-    debug("Segment " + obj.id);
-    obj.wavedata = WaveformData.create(obj.waveform);
-    this.push(obj);
-    return cb();
+  WavedataTransformer.prototype._transform = function(segment, encoding, callback) {
+    debug("Segment " + segment.id);
+    segment.wavedata = WaveformData.create(segment.waveform);
+    this.push(segment);
+    return callback();
   };
 
   return WavedataTransformer;

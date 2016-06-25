@@ -2,10 +2,15 @@ _ = require "underscore"
 
 BufferTransformer = require "./transformers/buffer"
 WaveformTransformer = require "./transformers/waveform"
+MomentTransformer = require "./transformers/moment"
 WavedataTransformer = require "./transformers/wavedata"
 PreviewTransformer = require "./transformers/preview"
-S3StoreTransformer = require "./transformers/s3"
+
 S3Store = require "./stores/s3"
+S3StoreTransformer = require "./transformers/stores/s3"
+MemoryStore = require "./stores/memory"
+IdsMemoryStoreTransformer = require "./transformers/stores/memory/ids"
+SegmentsMemoryStoreTransformer = require "./transformers/stores/memory/segments"
 
 debug = require("debug")("sm:archiver:stream")
 
@@ -25,17 +30,22 @@ segmentKeys = [
 module.exports = class StreamArchiver extends require("events").EventEmitter
     constructor: (@stream,@options) ->
         @stores = {}
-        @segments = {}
         @snapshot = null
 
         @transformers = [
             new BufferTransformer(@stream),
-            new WaveformTransformer(@options.pixels_per_second)
+            new WaveformTransformer(@options.pixels_per_second),
+            new MomentTransformer()
         ]
 
         if @options.stores?.s3?.enabled
             @stores.s3 = new S3Store(@stream,@options.stores.s3)
             @transformers.push new S3StoreTransformer(@stores.s3)
+
+        if @options.stores?.memory?.enabled
+            @stores.memory = new MemoryStore(@options.stores.memory)
+            @transformers.unshift new IdsMemoryStoreTransformer(@stores.memory)
+            @transformers.push new SegmentsMemoryStoreTransformer(@stores.memory)
 
         _.each @transformers, (transformer, index) =>
             previous = @transformers[index - 1];
@@ -59,27 +69,36 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
             debug "HLS Snapshot for #{@stream.key} (#{snapshot.segments.length} segments)"
             debug "Rewind extents are ", @stream._rbuffer.first(), @stream._rbuffer.last()
             @snapshot = snapshot
-
-            for id in _.difference(Object.keys(@segments),_.map(@snapshot.segments,(s) -> s.id.toString()))
-                debug "Expiring segment #{id} from cache"
-                delete @segments[id]
-
-            for seg in @snapshot.segments
-                if !@segments[seg.id]
-                    @segments[seg.id] = seg
-                    _.first(@transformers).write seg
+            for segment in @snapshot.segments
+                if not @stores.memory?.hasId segment.id
+                    _.first(@transformers).write segment
 
         debug("Created")
 
     #----------
 
     getPreview: (options, cb) ->
-        return cb(null, []) if !@snapshot
-        snapshot = _.map @snapshot.segments,(segment) =>
-            return @segments[segment.id]
-        segments = _.filter snapshot,(segment) =>
-            return segment?.waveform
-        @generatePreview segments,cb
+        @getPreviewFromMemory options,(err,preview) =>
+            return cb(err,preview) if err or (preview and preview.length)
+            @getPreviewFromS3 options,(err,preview) =>
+                return cb(err,preview) if err or (preview and preview.length)
+                return cb null,[]
+
+    #----------
+
+    getPreviewFromMemory: (options, cb) ->
+        return cb() if !@stores.memory
+        @generatePreview @stores.memory.getSegments(options),cb
+
+    #----------
+
+    getPreviewFromS3: (options, cb) ->
+        return cb() if !@stores.s3
+        @stores.s3.getSegments(options)
+            .catch(() => return [])
+            .then((segments) => @generatePreview(segments,cb))
+
+    #----------
 
     generatePreview: (segments,cb) ->
         preview = []
@@ -98,12 +117,26 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
     #----------
 
     getWaveform: (id,cb) ->
-        if !@stores.s3
-            return cb(null, @segments[id].waveform) if !@segments[id]?.waveform
-            return cb(new Error("Not found"))
+        @getWaveformFromMemory id,(err,waveform) =>
+            return cb(err,waveform) if err or waveform
+            @getWaveformFromS3 id,(err,waveform) =>
+                return cb(err,waveform) if err or waveform
+                return cb new Error("Not found")
+
+    #----------
+
+    getWaveformFromMemory: (id,cb) ->
+        return cb() if !@stores.memory
+        cb(null, @stores.memory.getSegmentById(id)?.waveform)
+
+
+    #----------
+
+    getWaveformFromS3: (id,cb) ->
+        return cb() if !@stores.s3
         @stores.s3.getSegmentById(id) \
             .then((segment) -> return cb(null, segment.waveform)) \
-            .catch(() -> return cb(new Error("Not found")))
+            .catch(() -> cb())
 
     #----------
 

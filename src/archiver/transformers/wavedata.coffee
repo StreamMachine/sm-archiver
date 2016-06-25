@@ -9,10 +9,10 @@ module.exports = class WavedataTransformer extends require("stream").Transform
 
     #----------
 
-    _transform: (obj,encoding,cb) ->
-        debug "Segment #{obj.id}"
-        obj.wavedata = WaveformData.create obj.waveform
-        @push obj
-        cb()
+    _transform: (segment,encoding,callback) ->
+        debug "Segment #{segment.id}"
+        segment.wavedata = WaveformData.create segment.waveform
+        @push segment
+        callback()
 
     #----------
