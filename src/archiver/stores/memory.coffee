@@ -53,6 +53,7 @@ module.exports = class MemoryStore
             @index[segment.moment.valueOf()] = segment.id
             return if @ids.length <= @options.length
             deletedId = @ids.shift()
+            delete @index[@segments[deletedId].moment.valueOf()]
             delete @segments[deletedId]
             debug "Expired segment #{deletedId}"
 

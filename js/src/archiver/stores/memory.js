@@ -67,6 +67,7 @@ module.exports = MemoryStore = (function() {
         return;
       }
       deletedId = this.ids.shift();
+      delete this.index[this.segments[deletedId].moment.valueOf()];
       delete this.segments[deletedId];
       return debug("Expired segment " + deletedId);
     }
