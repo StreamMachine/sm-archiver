@@ -39,7 +39,7 @@ module.exports = S3StoreTransformer = (function(superClass) {
     return P.all([
       this.s3.putFileIfNotExists("json/" + key + ".json", JSON.stringify(_.pick(segment, segmentKeys)), {
         ContentType: 'application/json'
-      }), this.s3.putFileIfNotExists("audio/" + key + "." + this.s3.format, segment.cbuf), this.s3.putFileIfNotExists("index/segments/" + segment.id, key)
+      }), this.s3.putFileIfNotExists("audio/" + key + "." + this.s3.format, segment.audio), this.s3.putFileIfNotExists("index/segments/" + segment.id, key)
     ]);
   };
 

@@ -37,7 +37,7 @@ module.exports = class S3StoreTransformer extends require("stream").Transform
         key = @s3.getKey segment
         return P.all([
             @s3.putFileIfNotExists("json/#{key}.json", JSON.stringify(_.pick(segment, segmentKeys)), ContentType:'application/json'),
-            @s3.putFileIfNotExists("audio/#{key}.#{@s3.format}", segment.cbuf),
+            @s3.putFileIfNotExists("audio/#{key}.#{@s3.format}", segment.audio),
             @s3.putFileIfNotExists("index/segments/#{segment.id}", key)
         ])
 

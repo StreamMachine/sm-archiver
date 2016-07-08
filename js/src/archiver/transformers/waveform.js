@@ -35,7 +35,7 @@ module.exports = WaveformTransformer = (function(superClass) {
         return cb();
       };
     })(this));
-    return pt.end(obj.cbuf);
+    return pt.end(obj.audio);
   };
 
   return WaveformTransformer;

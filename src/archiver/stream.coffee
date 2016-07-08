@@ -1,6 +1,6 @@
 _ = require "underscore"
 
-BufferTransformer = require "./transformers/buffer"
+AudioTransformer = require "./transformers/audio"
 WaveformTransformer = require "./transformers/waveform"
 MomentTransformer = require "./transformers/moment"
 WavedataTransformer = require "./transformers/wavedata"
@@ -33,7 +33,7 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
         @snapshot = null
 
         @transformers = [
-            new BufferTransformer(@stream),
+            new AudioTransformer(@stream),
             new WaveformTransformer(@options.pixels_per_second),
             new MomentTransformer()
         ]
@@ -125,10 +125,24 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
     #----------
 
+    getAudio: (id,format,cb) ->
+        @getAudioFromMemory id,format,(err,audio) =>
+            return cb(err,audio) if err or audio
+            @getAudioFromS3 id,format,(err,audio) =>
+                return cb(err,audio) if err or audio
+                return cb new Error("Not found")
+
+    #----------
+
     getWaveformFromMemory: (id,cb) ->
         return cb() if !@stores.memory
         cb(null, @stores.memory.getSegmentById(id)?.waveform)
 
+    #----------
+
+    getAudioFromMemory: (id,format,cb) ->
+        return cb() if !@stores.memory
+        cb(null, @stores.memory.getSegmentById(id)?.audio)
 
     #----------
 
@@ -136,6 +150,14 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
         return cb() if !@stores.s3
         @stores.s3.getSegmentById(id) \
             .then((segment) -> return cb(null, segment.waveform)) \
+            .catch(() -> cb())
+
+    #----------
+
+    getAudioFromS3: (id,format,cb) ->
+        return cb() if !@stores.s3
+        @stores.s3.getAudioBySegmentId(id,format) \
+            .then((audio) -> return cb(null, audio)) \
             .catch(() -> cb())
 
     #----------

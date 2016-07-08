@@ -18,6 +18,6 @@ module.exports = class WaveformTransformer extends require("stream").Transform
             obj.waveform = wave.asJSON()
             @push obj
             cb()
-        pt.end obj.cbuf
+        pt.end obj.audio
 
     #----------

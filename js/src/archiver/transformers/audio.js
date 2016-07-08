@@ -1,23 +1,23 @@
-var BufferTransformer, _, debug,
+var AudioTransformer, _, debug,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
 _ = require("underscore");
 
-debug = require("debug")("sm:archiver:transformers:buffer");
+debug = require("debug")("sm:archiver:transformers:audio");
 
-module.exports = BufferTransformer = (function(superClass) {
-  extend(BufferTransformer, superClass);
+module.exports = AudioTransformer = (function(superClass) {
+  extend(AudioTransformer, superClass);
 
-  function BufferTransformer(stream) {
+  function AudioTransformer(stream) {
     this.stream = stream;
-    BufferTransformer.__super__.constructor.call(this, {
+    AudioTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
     debug("Created");
   }
 
-  BufferTransformer.prototype._transform = function(seg, encoding, cb) {
+  AudioTransformer.prototype._transform = function(seg, encoding, cb) {
     var dur;
     debug("Segment " + seg.id);
     dur = this.stream.secsToOffset(seg.duration / 1000);
@@ -53,8 +53,8 @@ module.exports = BufferTransformer = (function(superClass) {
     })(this));
   };
 
-  return BufferTransformer;
+  return AudioTransformer;
 
 })(require("stream").Transform);
 
-//# sourceMappingURL=buffer.js.map
+//# sourceMappingURL=audio.js.map

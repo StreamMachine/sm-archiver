@@ -46,6 +46,22 @@ module.exports = S3Store = (function() {
     return this.getFiles(options.type + "/" + (this.getCommonKey(options)));
   };
 
+  S3Store.prototype.getAudioBySegmentId = function(id, format) {
+    return this.getFile("index/segments/" + id).then((function(_this) {
+      return function(data) {
+        return _this.getAudio(data.Body, format);
+      };
+    })(this));
+  };
+
+  S3Store.prototype.getAudio = function(key, format) {
+    return this.getFile("audio/" + key + "." + format).then((function(_this) {
+      return function(data) {
+        return data.Body;
+      };
+    })(this));
+  };
+
   S3Store.prototype.getFile = function(key) {
     key = this.prefix + "/" + key;
     debug("Getting " + key);
