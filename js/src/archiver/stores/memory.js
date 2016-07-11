@@ -68,15 +68,19 @@ module.exports = MemoryStore = (function() {
     var deletedId;
     if (this.hasId(segment.id)) {
       this.segments[segment.id] = segment;
-      this.index[segment.ts.valueOf()] = segment.id;
-      if (this.ids.length <= this.options.size) {
+      debug(moment(segment.ts).valueOf());
+      this.index[moment(segment.ts).valueOf()] = segment.id;
+      debug((Object.keys(this.segments).length) + " " + this.options.size);
+      if (Object.keys(this.segments).length <= this.options.size) {
         return;
       }
       deletedId = this.ids.shift();
+      debug(deletedId + " " + (this.segments[deletedId] != null));
       if (!this.segments[deletedId]) {
         return;
       }
-      delete this.index[this.segments[deletedId].ts.valueOf()];
+      debug(moment(this.segments[deletedId].ts).valueOf());
+      delete this.index[moment(this.segments[deletedId].ts).valueOf()];
       delete this.segments[deletedId];
       return debug("Expired segment " + deletedId);
     }

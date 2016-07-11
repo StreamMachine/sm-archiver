@@ -55,11 +55,11 @@ module.exports = class MemoryStore
     storeSegment: (segment) ->
         if @hasId segment.id
             @segments[segment.id] = segment
-            @index[segment.ts.valueOf()] = segment.id
-            return if @ids.length <= @options.size
+            @index[moment(segment.ts).valueOf()] = segment.id
+            return if Object.keys(@segments).length <= @options.size
             deletedId = @ids.shift()
             return if not @segments[deletedId]
-            delete @index[@segments[deletedId].ts.valueOf()]
+            delete @index[moment(@segments[deletedId].ts).valueOf()]
             delete @segments[deletedId]
             debug "Expired segment #{deletedId}"
 
