@@ -3,7 +3,7 @@ debug = require("debug")("sm:archiver:transformers:stores:memory:segments")
 module.exports = class SegmentsMemoryStoreTransformer extends require("stream").Transform
     constructor: (@memory,@options)->
         super objectMode:true
-        debug("Created")
+        debug "Created"
 
     #----------
 

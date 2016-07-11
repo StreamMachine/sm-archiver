@@ -18,8 +18,12 @@ module.exports = IdsMemoryStoreTransformer = (function(superClass) {
 
   IdsMemoryStoreTransformer.prototype._transform = function(segment, encoding, callback) {
     debug("Segment " + segment.id);
-    this.memory.storeId(segment.id);
-    this.push(segment);
+    if (this.memory.hasId(segment.id)) {
+      debug("Skipping " + segment.id);
+    } else {
+      this.memory.storeId(segment.id);
+      this.push(segment);
+    }
     return callback();
   };
 

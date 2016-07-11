@@ -6,7 +6,7 @@ debug = require("debug")("sm:archiver:transformers:waveform")
 module.exports = class WaveformTransformer extends require("stream").Transform
     constructor: (@pps)->
         super objectMode:true
-        debug("Created")
+        debug "Created"
 
     #----------
 

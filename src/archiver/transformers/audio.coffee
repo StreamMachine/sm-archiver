@@ -5,7 +5,7 @@ debug = require("debug")("sm:archiver:transformers:audio")
 module.exports = class AudioTransformer extends require("stream").Transform
     constructor: (@stream) ->
         super objectMode:true
-        debug("Created")
+        debug "Created"
 
     _transform: (seg,encoding,cb) ->
         debug "Segment #{seg.id}"
