@@ -31,7 +31,14 @@ module.exports = class Server
             new @core.Outputs.live_streaming.Index req.stream, req:req, res:res
 
         @app.get "/:stream/ts/:seg.(:format)", (req,res) =>
-            new @core.Outputs.live_streaming req.stream, req:req, res:res, format:req.params.format
+            if !req.stream.archiver
+                return res.status(404).json status:404,error:"Stream not archived"
+            req.stream.archiver.getAudio req.params.seg, req.params.format, (err,audio) =>
+                if err
+                    res.status(404).json status:404,error:"Audio not found"
+                else
+                    res.type req.params.format
+                    res.send audio
 
         @app.get "/:stream/info", (req,res) =>
             res.json format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream.archiver?

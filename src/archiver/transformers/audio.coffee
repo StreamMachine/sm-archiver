@@ -1,8 +1,8 @@
 _ = require "underscore"
 
-debug = require("debug")("sm:archiver:transformers:buffer")
+debug = require("debug")("sm:archiver:transformers:audio")
 
-module.exports = class BufferTransformer extends require("stream").Transform
+module.exports = class AudioTransformer extends require("stream").Transform
     constructor: (@stream) ->
         super objectMode:true
         debug("Created")
@@ -29,6 +29,6 @@ module.exports = class BufferTransformer extends require("stream").Transform
 
                 meta = b.meta if !meta
 
-            cbuf = Buffer.concat(buffers,length)
-            @push _.extend(seg, cbuf:cbuf, duration:duration, meta:meta)
+            audio = Buffer.concat(buffers,length)
+            @push _.extend(seg, audio:audio, duration:duration, meta:meta)
             cb()

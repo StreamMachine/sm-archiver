@@ -49,10 +49,22 @@ module.exports = Server = (function() {
     })(this));
     this.app.get("/:stream/ts/:seg.(:format)", (function(_this) {
       return function(req, res) {
-        return new _this.core.Outputs.live_streaming(req.stream, {
-          req: req,
-          res: res,
-          format: req.params.format
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
+        return req.stream.archiver.getAudio(req.params.seg, req.params.format, function(err, audio) {
+          if (err) {
+            return res.status(404).json({
+              status: 404,
+              error: "Audio not found"
+            });
+          } else {
+            res.type(req.params.format);
+            return res.send(audio);
+          }
         });
       };
     })(this));

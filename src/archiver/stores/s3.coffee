@@ -37,6 +37,19 @@ module.exports = class S3Store
 
     #----------
 
+    getAudioBySegmentId:(id,format) ->
+        @getFile("index/segments/#{id}") \
+            .then (data) =>
+                @getAudio(data.Body,format)
+
+    #----------
+
+    getAudio:(key,format) ->
+        @getFile("audio/#{key}.#{format}") \
+            .then (data) => data.Body
+    
+    #----------
+
     getFile:(key) ->
         key = "#{@prefix}/#{key}"
         debug "Getting #{key}"
