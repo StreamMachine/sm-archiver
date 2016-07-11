@@ -1,4 +1,4 @@
-var AudioTransformer, IdsMemoryStoreTransformer, MemoryStore, MomentTransformer, PreviewTransformer, S3Store, S3StoreTransformer, SegmentsMemoryStoreTransformer, StreamArchiver, WavedataTransformer, WaveformTransformer, _, debug, segmentKeys,
+var AudioTransformer, ElasticsearchStore, ElasticsearchStoreTransformer, IdsMemoryStoreTransformer, MemoryStore, PreviewTransformer, S3Store, S3StoreTransformer, SegmentsMemoryStoreTransformer, StreamArchiver, WavedataTransformer, WaveformTransformer, _, debug, segmentKeys,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -8,21 +8,23 @@ AudioTransformer = require("./transformers/audio");
 
 WaveformTransformer = require("./transformers/waveform");
 
-MomentTransformer = require("./transformers/moment");
-
 WavedataTransformer = require("./transformers/wavedata");
 
 PreviewTransformer = require("./transformers/preview");
-
-S3Store = require("./stores/s3");
-
-S3StoreTransformer = require("./transformers/stores/s3");
 
 MemoryStore = require("./stores/memory");
 
 IdsMemoryStoreTransformer = require("./transformers/stores/memory/ids");
 
 SegmentsMemoryStoreTransformer = require("./transformers/stores/memory/segments");
+
+ElasticsearchStore = require("./stores/elasticsearch");
+
+ElasticsearchStoreTransformer = require("./transformers/stores/elasticsearch");
+
+S3Store = require("./stores/s3");
+
+S3StoreTransformer = require("./transformers/stores/s3");
 
 debug = require("debug")("sm:archiver:stream");
 
@@ -32,20 +34,23 @@ module.exports = StreamArchiver = (function(superClass) {
   extend(StreamArchiver, superClass);
 
   function StreamArchiver(stream, options1) {
-    var ref, ref1, ref2, ref3;
+    var ref, ref1, ref2, ref3, ref4, ref5;
     this.stream = stream;
     this.options = options1;
     this.stores = {};
-    this.snapshot = null;
-    this.transformers = [new AudioTransformer(this.stream), new WaveformTransformer(this.options.pixels_per_second), new MomentTransformer()];
-    if ((ref = this.options.stores) != null ? (ref1 = ref.s3) != null ? ref1.enabled : void 0 : void 0) {
-      this.stores.s3 = new S3Store(this.stream, this.options.stores.s3);
-      this.transformers.push(new S3StoreTransformer(this.stores.s3));
-    }
-    if ((ref2 = this.options.stores) != null ? (ref3 = ref2.memory) != null ? ref3.enabled : void 0 : void 0) {
+    this.transformers = [new AudioTransformer(this.stream), new WaveformTransformer(this.options.pixels_per_second)];
+    if ((ref = this.options.stores) != null ? (ref1 = ref.memory) != null ? ref1.enabled : void 0 : void 0) {
       this.stores.memory = new MemoryStore(this.options.stores.memory);
       this.transformers.unshift(new IdsMemoryStoreTransformer(this.stores.memory));
       this.transformers.push(new SegmentsMemoryStoreTransformer(this.stores.memory));
+    }
+    if ((ref2 = this.options.stores) != null ? (ref3 = ref2.elasticsearch) != null ? ref3.enabled : void 0 : void 0) {
+      this.stores.elasticsearch = new ElasticsearchStore(this.stream, this.options.stores.elasticsearch);
+      this.transformers.push(new ElasticsearchStoreTransformer(this.stores.elasticsearch));
+    }
+    if ((ref4 = this.options.stores) != null ? (ref5 = ref4.s3) != null ? ref5.enabled : void 0 : void 0) {
+      this.stores.s3 = new S3Store(this.stream, this.options.stores.s3);
+      this.transformers.push(new S3StoreTransformer(this.stores.s3));
     }
     _.each(this.transformers, (function(_this) {
       return function(transformer, index) {
@@ -68,33 +73,26 @@ module.exports = StreamArchiver = (function(superClass) {
     })(this));
     this.stream.source.on("hls_snapshot", (function(_this) {
       return function(snapshot) {
-        debug("HLS Snapshot received via broadcast from " + _this.stream.key);
+        debug("HLS Snapshot received via broadcast from " + _this.stream.key + " (" + snapshot.segments.length + " segments)");
         return _this.stream.emit("hls_snapshot", snapshot);
       };
     })(this));
     this.stream._once_source_loaded((function(_this) {
       return function() {
         return _this.stream.source.getHLSSnapshot(function(err, snapshot) {
-          debug("HLS snapshot from initial source load of " + _this.stream.key);
+          debug("HLS snapshot from initial source load of " + _this.stream.key + " (" + snapshot.segments.length + " segments)");
           return _this.stream.emit("hls_snapshot", snapshot);
         });
       };
     })(this));
     this.stream.on("hls_snapshot", (function(_this) {
       return function(snapshot) {
-        var i, len, ref4, ref5, results, segment;
-        debug("HLS Snapshot for " + _this.stream.key + " (" + snapshot.segments.length + " segments)");
-        debug("Rewind extents are ", _this.stream._rbuffer.first(), _this.stream._rbuffer.last());
-        _this.snapshot = snapshot;
-        ref4 = _this.snapshot.segments;
+        var i, len, ref6, results, segment;
+        ref6 = snapshot.segments;
         results = [];
-        for (i = 0, len = ref4.length; i < len; i++) {
-          segment = ref4[i];
-          if (!((ref5 = _this.stores.memory) != null ? ref5.hasId(segment.id) : void 0)) {
-            results.push(_.first(_this.transformers).write(segment));
-          } else {
-            results.push(void 0);
-          }
+        for (i = 0, len = ref6.length; i < len; i++) {
+          segment = ref6[i];
+          results.push(_.first(_this.transformers).write(segment));
         }
         return results;
       };
@@ -108,7 +106,7 @@ module.exports = StreamArchiver = (function(superClass) {
         if (err || (preview && preview.length)) {
           return cb(err, preview);
         }
-        return _this.getPreviewFromS3(options, function(err, preview) {
+        return _this.getPreviewFromElasticsearch(options, function(err, preview) {
           if (err || (preview && preview.length)) {
             return cb(err, preview);
           }
@@ -125,15 +123,13 @@ module.exports = StreamArchiver = (function(superClass) {
     return this.generatePreview(this.stores.memory.getSegments(options), cb);
   };
 
-  StreamArchiver.prototype.getPreviewFromS3 = function(options, cb) {
-    if (!this.stores.s3) {
+  StreamArchiver.prototype.getPreviewFromElasticsearch = function(options, cb) {
+    if (!this.stores.elasticsearch) {
       return cb();
     }
-    return this.stores.s3.getSegments(options)["catch"]((function(_this) {
-      return function() {
-        return [];
-      };
-    })(this)).then((function(_this) {
+    return this.stores.elasticsearch.getSegments(options)["catch"](function() {
+      return [];
+    }).then((function(_this) {
       return function(segments) {
         return _this.generatePreview(segments, cb);
       };
@@ -175,28 +171,7 @@ module.exports = StreamArchiver = (function(superClass) {
         if (err || waveform) {
           return cb(err, waveform);
         }
-        return _this.getWaveformFromS3(id, function(err, waveform) {
-          if (err || waveform) {
-            return cb(err, waveform);
-          }
-          return cb(new Error("Not found"));
-        });
-      };
-    })(this));
-  };
-
-  StreamArchiver.prototype.getAudio = function(id, format, cb) {
-    return this.getAudioFromMemory(id, format, (function(_this) {
-      return function(err, audio) {
-        if (err || audio) {
-          return cb(err, audio);
-        }
-        return _this.getAudioFromS3(id, format, function(err, audio) {
-          if (err || audio) {
-            return cb(err, audio);
-          }
-          return cb(new Error("Not found"));
-        });
+        return _this.getWaveformFromElasticsearch(id, cb);
       };
     })(this));
   };
@@ -209,6 +184,28 @@ module.exports = StreamArchiver = (function(superClass) {
     return cb(null, (ref = this.stores.memory.getSegmentById(id)) != null ? ref.waveform : void 0);
   };
 
+  StreamArchiver.prototype.getWaveformFromElasticsearch = function(id, cb) {
+    if (!this.stores.elasticsearch) {
+      return cb();
+    }
+    return this.stores.elasticsearch.getSegmentById(id).then(function(segment) {
+      return cb(null, segment != null ? segment.waveform : void 0);
+    })["catch"](function() {
+      return cb();
+    });
+  };
+
+  StreamArchiver.prototype.getAudio = function(id, format, cb) {
+    return this.getAudioFromMemory(id, format, (function(_this) {
+      return function(err, audio) {
+        if (err || audio) {
+          return cb(err, audio);
+        }
+        return _this.getAudioFromS3(id, format, cb);
+      };
+    })(this));
+  };
+
   StreamArchiver.prototype.getAudioFromMemory = function(id, format, cb) {
     var ref;
     if (!this.stores.memory) {
@@ -217,22 +214,11 @@ module.exports = StreamArchiver = (function(superClass) {
     return cb(null, (ref = this.stores.memory.getSegmentById(id)) != null ? ref.audio : void 0);
   };
 
-  StreamArchiver.prototype.getWaveformFromS3 = function(id, cb) {
-    if (!this.stores.s3) {
-      return cb();
-    }
-    return this.stores.s3.getSegmentById(id).then(function(segment) {
-      return cb(null, segment.waveform);
-    })["catch"](function() {
-      return cb();
-    });
-  };
-
   StreamArchiver.prototype.getAudioFromS3 = function(id, format, cb) {
     if (!this.stores.s3) {
       return cb();
     }
-    return this.stores.s3.getAudioBySegmentId(id, format).then(function(audio) {
+    return this.stores.s3.getAudioById(id, format).then(function(audio) {
       return cb(null, audio);
     })["catch"](function() {
       return cb();

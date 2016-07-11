@@ -21,41 +21,11 @@ module.exports = S3Store = (function() {
     debug("Created");
   }
 
-  S3Store.prototype.getSegmentById = function(id) {
-    return this.getFile("index/segments/" + id).then((function(_this) {
-      return function(data) {
-        return _this.getSegment(data.Body);
-      };
-    })(this));
-  };
-
-  S3Store.prototype.getSegment = function(key) {
-    return this.getFile("json/" + key + ".json").then((function(_this) {
-      return function(data) {
-        return JSON.parse(data.Body);
-      };
-    })(this));
-  };
-
-  S3Store.prototype.getSegments = function(options) {
-    options = _.clone(options || {});
-    options.type = options.type || "json";
-    if (!options.from || !options.to) {
-      return P.resolve([]);
+  S3Store.prototype.getAudioById = function(id, format) {
+    if (format !== this.format) {
+      return P.resolve();
     }
-    return this.getFiles(options.type + "/" + (this.getCommonKey(options)));
-  };
-
-  S3Store.prototype.getAudioBySegmentId = function(id, format) {
-    return this.getFile("index/segments/" + id).then((function(_this) {
-      return function(data) {
-        return _this.getAudio(data.Body, format);
-      };
-    })(this));
-  };
-
-  S3Store.prototype.getAudio = function(key, format) {
-    return this.getFile("audio/" + key + "." + format).then((function(_this) {
+    return this.getFile("audio/" + id + "." + format).then((function(_this) {
       return function(data) {
         return data.Body;
       };
@@ -75,43 +45,15 @@ module.exports = S3Store = (function() {
     })(this));
   };
 
-  S3Store.prototype.getFiles = function(key) {
-    key = this.prefix + "/" + key;
-    debug("Listing " + key);
-    return this.listObjectsV2Async({
-      Prefix: "" + key
-    })["catch"]((function(_this) {
-      return function(error) {
-        debug("LIST Error for " + key + ": " + error);
-        throw error;
-      };
-    })(this)).then((function(_this) {
-      return function(data) {
-        return data.Contents;
-      };
-    })(this)).map((function(_this) {
-      return function(file) {
-        return _this.getObjectAsync({
-          Key: file.Key
-        });
-      };
-    })(this)).map((function(_this) {
-      return function(file) {
-        return JSON.parse(file.Body);
-      };
-    })(this))["catch"]((function(_this) {
-      return function(error) {
-        debug("GET Error for " + key + ": " + error);
-        throw error;
-      };
-    })(this));
-  };
-
   S3Store.prototype.putFileIfNotExists = function(key, body, options) {
     key = this.prefix + "/" + key;
     return this.headObjectAsync({
       Key: key
-    })["catch"]((function(_this) {
+    }).then((function(_this) {
+      return function() {
+        return debug("Skipping " + key);
+      };
+    })(this))["catch"]((function(_this) {
       return function(error) {
         if (error.statusCode === 404) {
           debug("Storing " + key);
@@ -125,47 +67,6 @@ module.exports = S3Store = (function() {
         return debug("HEAD Error for " + key + ": " + error);
       };
     })(this));
-  };
-
-  S3Store.prototype.getKey = function(segment) {
-    var date, hour, minute, month, second, year;
-    year = String(segment.moment.year());
-    month = String(segment.moment.month() + 1);
-    date = String(segment.moment.date());
-    hour = String(segment.moment.hour());
-    minute = String(segment.moment.minute());
-    second = String(segment.moment.second());
-    return year + "/" + month + "/" + date + "/" + hour + "/" + minute + "/" + second;
-  };
-
-  S3Store.prototype.getCommonKey = function(options) {
-    var date, hour, key, minute, month, year;
-    key = "";
-    year = options.from.year();
-    month = options.from.month() + 1;
-    date = options.from.date();
-    hour = options.from.hour();
-    minute = options.from.minute();
-    if (year !== options.to.year()) {
-      return key;
-    }
-    key += year + "/";
-    if (month !== (options.to.month() + 1)) {
-      return key;
-    }
-    key += month + "/";
-    if (date !== options.to.date()) {
-      return key;
-    }
-    key += date + "/";
-    if (hour !== options.to.hour()) {
-      return key;
-    }
-    key += hour + "/";
-    if (minute !== options.to.minute()) {
-      return key;
-    }
-    return key += minute + "/";
   };
 
   return S3Store;

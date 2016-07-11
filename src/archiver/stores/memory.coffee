@@ -1,4 +1,5 @@
 _ = require "underscore"
+moment = require "moment"
 
 debug = require("debug")("sm:archiver:stores:memory")
 
@@ -17,19 +18,29 @@ module.exports = class MemoryStore
     #----------
 
     getSegmentById: (id) ->
+        debug "Getting #{id}"
         return @segments[id]
+
+    #----------
+
+    storeId: (id) ->
+        if @hasId id
+            return false
+        @ids.push id
+        return true
 
     #----------
 
     getSegments: (options) ->
         options = _.clone(options or {})
-        options.from = options.from?.valueOf() or -1
-        options.to = options.to?.valueOf() or Infinity
+        options.from = if options.from then moment(options.from).valueOf() else -1
+        options.to = if options.to then moment(options.to).valueOf() else Infinity
         index = Object.keys(@index)
         min = _.min index
         segments = []
         return segments if options.to <= min
         return segments if options.from != -1 and options.from < min
+        debug "Searching from #{options.from} to #{options.to}"
         return index.sort().reduce(((segments,moment) => @_reduce(segments,moment,options)), segments)
 
     #----------
@@ -41,19 +52,14 @@ module.exports = class MemoryStore
 
     #----------
 
-    storeId: (id) ->
-        if not @hasId id
-            @ids.push id
-
-    #----------
-
     storeSegment: (segment) ->
         if @hasId segment.id
             @segments[segment.id] = segment
-            @index[segment.moment.valueOf()] = segment.id
-            return if @ids.length <= @options.length
+            @index[moment(segment.ts).valueOf()] = segment.id
+            return if Object.keys(@segments).length <= @options.size
             deletedId = @ids.shift()
-            delete @index[@segments[deletedId].moment.valueOf()]
+            return if not @segments[deletedId]
+            delete @index[moment(@segments[deletedId].ts).valueOf()]
             delete @segments[deletedId]
             debug "Expired segment #{deletedId}"
 
@@ -62,7 +68,7 @@ module.exports = class MemoryStore
     deleteSegment: (id) ->
         segment = @segments[id]
         return if not segment
-        delete @index[segment.moment.valueOf()]
+        delete @index[segment.ts.valueOf()]
         delete @segments[id]
         debug "Expired segment #{id}"
 

@@ -34,7 +34,7 @@ module.exports = class Server
             if !req.stream.archiver
                 return res.status(404).json status:404,error:"Stream not archived"
             req.stream.archiver.getAudio req.params.seg, req.params.format, (err,audio) =>
-                if err
+                if err or not audio
                     res.status(404).json status:404,error:"Audio not found"
                 else
                     res.type req.params.format
@@ -44,13 +44,10 @@ module.exports = class Server
             res.json format:req.stream.opts.format, codec:req.stream.opts.codec, archived:req.stream.archiver?
 
         @app.get "/:stream/preview", (req,res) =>
-            options = {}
             if !req.stream.archiver
                 return res.status(404).json status:404,error:"Stream not archived"
-            options.from = moment(req.query.from, req.query.format) if req.query.from
-            options.to = moment(req.query.to, req.query.format) if req.query.to
-            req.stream.archiver.getPreview options,(err,preview) =>
-                if err
+            req.stream.archiver.getPreview req.query,(err,preview) =>
+                if err or not preview
                     res.status(404).json status:404,error:"Preview not found"
                 else
                     res.json preview
@@ -59,7 +56,7 @@ module.exports = class Server
             if !req.stream.archiver
                 return res.status(404).json status:404,error:"Stream not archived"
             req.stream.archiver.getWaveform req.params.seg, (err,waveform) =>
-                if err
+                if err or not waveform
                     res.status(404).json status:404,error:"Waveform not found"
                 else
                     res.json waveform
@@ -71,6 +68,6 @@ module.exports = class Server
         # -- Listen! -- #
 
         @_server = @app.listen @port,() =>
-            debug("Listing on port #{@port}")
+            debug "Listing on port #{@port}"
 
-        debug("Created")
+        debug "Created"

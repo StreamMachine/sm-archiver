@@ -56,7 +56,7 @@ module.exports = Server = (function() {
           });
         }
         return req.stream.archiver.getAudio(req.params.seg, req.params.format, function(err, audio) {
-          if (err) {
+          if (err || !audio) {
             return res.status(404).json({
               status: 404,
               error: "Audio not found"
@@ -79,22 +79,14 @@ module.exports = Server = (function() {
     })(this));
     this.app.get("/:stream/preview", (function(_this) {
       return function(req, res) {
-        var options;
-        options = {};
         if (!req.stream.archiver) {
           return res.status(404).json({
             status: 404,
             error: "Stream not archived"
           });
         }
-        if (req.query.from) {
-          options.from = moment(req.query.from, req.query.format);
-        }
-        if (req.query.to) {
-          options.to = moment(req.query.to, req.query.format);
-        }
-        return req.stream.archiver.getPreview(options, function(err, preview) {
-          if (err) {
+        return req.stream.archiver.getPreview(req.query, function(err, preview) {
+          if (err || !preview) {
             return res.status(404).json({
               status: 404,
               error: "Preview not found"
@@ -114,7 +106,7 @@ module.exports = Server = (function() {
           });
         }
         return req.stream.archiver.getWaveform(req.params.seg, function(err, waveform) {
-          if (err) {
+          if (err || !waveform) {
             return res.status(404).json({
               status: 404,
               error: "Waveform not found"

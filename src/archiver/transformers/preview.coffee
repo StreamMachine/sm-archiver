@@ -4,7 +4,7 @@ module.exports = class PreviewTransformer extends require("stream").Transform
     constructor: (@width,@length)->
         @psegWidth = Math.ceil(@width / @length)
         super objectMode:true
-        debug("Created")
+        debug "Created"
 
     #----------
 
