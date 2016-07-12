@@ -18,7 +18,8 @@ segmentKeys = [
 ]
 
 module.exports = class ElasticsearchStore
-    constructor:(@stream,@options) ->
+    constructor:(@stream,options) ->
+        @options = _.clone options
         _.extend(@, new elasticsearch.Client @options)
         @hours = @options.size / 60 / 6
         debug "Created"
