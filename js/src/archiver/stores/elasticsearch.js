@@ -11,9 +11,9 @@ debug = require("debug")("sm:archiver:stores:elasticsearch");
 segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "waveform"];
 
 module.exports = ElasticsearchStore = (function() {
-  function ElasticsearchStore(stream, options1) {
+  function ElasticsearchStore(stream, options) {
     this.stream = stream;
-    this.options = options1;
+    this.options = _.clone(options);
     _.extend(this, new elasticsearch.Client(this.options));
     this.hours = this.options.size / 60 / 6;
     debug("Created");
