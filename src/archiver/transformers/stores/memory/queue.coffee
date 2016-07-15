@@ -1,6 +1,6 @@
-debug = require("debug")("sm:archiver:transformers:stores:memory:ids")
+debug = require("debug")("sm:archiver:transformers:stores:memory:queue")
 
-module.exports = class IdsMemoryStoreTransformer extends require("stream").Transform
+module.exports = class QueueMemoryStoreTransformer extends require("stream").Transform
     constructor: (@memory,@options)->
         super objectMode:true
         debug "Created"
@@ -9,10 +9,10 @@ module.exports = class IdsMemoryStoreTransformer extends require("stream").Trans
 
     _transform: (segment, encoding, callback) ->
         debug "Segment #{segment.id}"
-        if @memory.hasId segment.id
+        if @memory.has segment
             debug "Skipping #{segment.id}"
         else
-            @memory.storeId segment.id
+            @memory.enqueue segment
             @push segment
         callback()
 

@@ -1,13 +1,14 @@
 _ = require "underscore"
 
+IdTransformer = require "./transformers/id"
 AudioTransformer = require "./transformers/audio"
 WaveformTransformer = require "./transformers/waveform"
 WavedataTransformer = require "./transformers/wavedata"
 PreviewTransformer = require "./transformers/preview"
 
 MemoryStore = require "./stores/memory"
-IdsMemoryStoreTransformer = require "./transformers/stores/memory/ids"
-SegmentsMemoryStoreTransformer = require "./transformers/stores/memory/segments"
+QueueMemoryStoreTransformer = require "./transformers/stores/memory/queue"
+MemoryStoreTransformer = require "./transformers/stores/memory"
 ElasticsearchStore = require "./stores/elasticsearch"
 ElasticsearchStoreTransformer = require "./transformers/stores/elasticsearch"
 S3Store = require "./stores/s3"
@@ -39,8 +40,8 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
         if @options.stores?.memory?.enabled
             @stores.memory = new MemoryStore(@options.stores.memory)
-            @transformers.unshift new IdsMemoryStoreTransformer(@stores.memory)
-            @transformers.push new SegmentsMemoryStoreTransformer(@stores.memory)
+            @transformers.unshift new QueueMemoryStoreTransformer(@stores.memory)
+            @transformers.push new MemoryStoreTransformer(@stores.memory)
 
         if @options.stores?.elasticsearch?.enabled
             @stores.elasticsearch = new ElasticsearchStore(@stream,@options.stores.elasticsearch)
@@ -49,6 +50,8 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
         if @options.stores?.s3?.enabled
             @stores.s3 = new S3Store(@stream,@options.stores.s3)
             @transformers.push new S3StoreTransformer(@stores.s3)
+
+        @transformers.unshift new IdTransformer()
 
         _.each @transformers, (transformer, index) =>
             previous = @transformers[index - 1];
@@ -87,7 +90,7 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
     getPreviewFromMemory: (options, cb) ->
         return cb() if !@stores.memory
-        @generatePreview @stores.memory.getSegments(options),cb
+        @generatePreview @stores.memory.get(options),cb
 
     #----------
 
@@ -124,7 +127,7 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
     getWaveformFromMemory: (id,cb) ->
         return cb() if !@stores.memory
-        cb(null, @stores.memory.getSegmentById(id)?.waveform)
+        cb(null, @stores.memory.getById(id)?.waveform)
 
     #----------
 
@@ -145,7 +148,7 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
     getAudioFromMemory: (id,format,cb) ->
         return cb() if !@stores.memory
-        cb(null, @stores.memory.getSegmentById(id)?.audio)
+        cb(null, @stores.memory.getById(id)?.audio)
 
     #----------
 
