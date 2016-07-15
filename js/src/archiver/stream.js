@@ -1,8 +1,10 @@
-var AudioTransformer, ElasticsearchStore, ElasticsearchStoreTransformer, IdsMemoryStoreTransformer, MemoryStore, PreviewTransformer, S3Store, S3StoreTransformer, SegmentsMemoryStoreTransformer, StreamArchiver, WavedataTransformer, WaveformTransformer, _, debug, segmentKeys,
+var AudioTransformer, ElasticsearchStore, ElasticsearchStoreTransformer, IdTransformer, MemoryStore, MemoryStoreTransformer, PreviewTransformer, QueueMemoryStoreTransformer, S3Store, S3StoreTransformer, StreamArchiver, WavedataTransformer, WaveformTransformer, _, debug, segmentKeys,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
 _ = require("underscore");
+
+IdTransformer = require("./transformers/id");
 
 AudioTransformer = require("./transformers/audio");
 
@@ -14,9 +16,9 @@ PreviewTransformer = require("./transformers/preview");
 
 MemoryStore = require("./stores/memory");
 
-IdsMemoryStoreTransformer = require("./transformers/stores/memory/ids");
+QueueMemoryStoreTransformer = require("./transformers/stores/memory/queue");
 
-SegmentsMemoryStoreTransformer = require("./transformers/stores/memory/segments");
+MemoryStoreTransformer = require("./transformers/stores/memory");
 
 ElasticsearchStore = require("./stores/elasticsearch");
 
@@ -41,8 +43,8 @@ module.exports = StreamArchiver = (function(superClass) {
     this.transformers = [new AudioTransformer(this.stream), new WaveformTransformer(this.options.pixels_per_second)];
     if ((ref = this.options.stores) != null ? (ref1 = ref.memory) != null ? ref1.enabled : void 0 : void 0) {
       this.stores.memory = new MemoryStore(this.options.stores.memory);
-      this.transformers.unshift(new IdsMemoryStoreTransformer(this.stores.memory));
-      this.transformers.push(new SegmentsMemoryStoreTransformer(this.stores.memory));
+      this.transformers.unshift(new QueueMemoryStoreTransformer(this.stores.memory));
+      this.transformers.push(new MemoryStoreTransformer(this.stores.memory));
     }
     if ((ref2 = this.options.stores) != null ? (ref3 = ref2.elasticsearch) != null ? ref3.enabled : void 0 : void 0) {
       this.stores.elasticsearch = new ElasticsearchStore(this.stream, this.options.stores.elasticsearch);
@@ -52,6 +54,7 @@ module.exports = StreamArchiver = (function(superClass) {
       this.stores.s3 = new S3Store(this.stream, this.options.stores.s3);
       this.transformers.push(new S3StoreTransformer(this.stores.s3));
     }
+    this.transformers.unshift(new IdTransformer());
     _.each(this.transformers, (function(_this) {
       return function(transformer, index) {
         var previous;
@@ -120,7 +123,7 @@ module.exports = StreamArchiver = (function(superClass) {
     if (!this.stores.memory) {
       return cb();
     }
-    return this.generatePreview(this.stores.memory.getSegments(options), cb);
+    return this.generatePreview(this.stores.memory.get(options), cb);
   };
 
   StreamArchiver.prototype.getPreviewFromElasticsearch = function(options, cb) {
@@ -181,7 +184,7 @@ module.exports = StreamArchiver = (function(superClass) {
     if (!this.stores.memory) {
       return cb();
     }
-    return cb(null, (ref = this.stores.memory.getSegmentById(id)) != null ? ref.waveform : void 0);
+    return cb(null, (ref = this.stores.memory.getById(id)) != null ? ref.waveform : void 0);
   };
 
   StreamArchiver.prototype.getWaveformFromElasticsearch = function(id, cb) {
@@ -211,7 +214,7 @@ module.exports = StreamArchiver = (function(superClass) {
     if (!this.stores.memory) {
       return cb();
     }
-    return cb(null, (ref = this.stores.memory.getSegmentById(id)) != null ? ref.audio : void 0);
+    return cb(null, (ref = this.stores.memory.getById(id)) != null ? ref.audio : void 0);
   };
 
   StreamArchiver.prototype.getAudioFromS3 = function(id, format, cb) {

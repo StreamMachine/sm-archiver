@@ -1,6 +1,6 @@
-debug = require("debug")("sm:archiver:transformers:stores:memory:segments")
+debug = require("debug")("sm:archiver:transformers:stores:memory")
 
-module.exports = class SegmentsMemoryStoreTransformer extends require("stream").Transform
+module.exports = class MemoryStoreTransformer extends require("stream").Transform
     constructor: (@memory,@options)->
         super objectMode:true
         debug "Created"
@@ -9,7 +9,7 @@ module.exports = class SegmentsMemoryStoreTransformer extends require("stream").
 
     _transform: (segment, encoding, callback) ->
         debug "Segment #{segment.id}"
-        @memory.storeSegment segment
+        @memory.store segment
         @push segment
         callback()
 

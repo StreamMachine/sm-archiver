@@ -1,6 +1,4 @@
-var MemoryStore, _, debug, moment,
-  bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+var MemoryStore, _, debug, moment;
 
 _ = require("underscore");
 
@@ -11,86 +9,62 @@ debug = require("debug")("sm:archiver:stores:memory");
 module.exports = MemoryStore = (function() {
   function MemoryStore(options1) {
     this.options = options1;
-    this._reduce = bind(this._reduce, this);
-    this.ids = [];
-    this.index = {};
+    this.queue = {};
     this.segments = {};
+    this.index = [];
     debug("Created");
   }
 
-  MemoryStore.prototype.hasId = function(id) {
-    return indexOf.call(this.ids, id) >= 0;
+  MemoryStore.prototype.has = function(segment) {
+    return (this.queue[segment.id] != null) || (this.segments[segment.id] != null);
   };
 
-  MemoryStore.prototype.getSegmentById = function(id) {
+  MemoryStore.prototype.enqueue = function(segment) {
+    debug("Enqueuing " + segment.id);
+    return this.queue[segment.id] = segment;
+  };
+
+  MemoryStore.prototype.store = function(segment) {
+    debug("Storing " + segment.id);
+    this.segments[segment.id] = segment;
+    this.index.push(segment.id);
+    delete this.queue[segment.id];
+    if (this.index.length > this.options.size) {
+      this.expire();
+    }
+    return debug(this.index.length + " segments in memory");
+  };
+
+  MemoryStore.prototype.expire = function() {
+    var id;
+    id = this.index.shift();
+    delete this.segments[id];
+    return debug("Expired segment " + id);
+  };
+
+  MemoryStore.prototype.getById = function(id) {
     debug("Getting " + id);
     return this.segments[id];
   };
 
-  MemoryStore.prototype.storeId = function(id) {
-    if (this.hasId(id)) {
-      return false;
-    }
-    this.ids.push(id);
-    return true;
-  };
-
-  MemoryStore.prototype.getSegments = function(options) {
-    var index, min, segments;
+  MemoryStore.prototype.get = function(options) {
+    var segments;
     options = _.clone(options || {});
     options.from = options.from ? moment(options.from).valueOf() : -1;
     options.to = options.to ? moment(options.to).valueOf() : Infinity;
-    index = Object.keys(this.index);
-    min = _.min(index);
     segments = [];
-    if (options.to <= min) {
+    if (options.to <= this.index[0]) {
       return segments;
     }
-    if (options.from !== -1 && options.from < min) {
+    if (options.from !== -1 && options.from < this.index[0]) {
       return segments;
     }
     debug("Searching from " + options.from + " to " + options.to);
-    return index.sort().reduce(((function(_this) {
-      return function(segments, moment) {
-        return _this._reduce(segments, moment, options);
+    return _.values(_.pick(this.segments, _.filter(this.index, (function(_this) {
+      return function(id) {
+        return id >= options.from && id < options.to;
       };
-    })(this)), segments);
-  };
-
-  MemoryStore.prototype._reduce = function(segments, moment, options) {
-    if (moment >= options.from && moment <= options.to) {
-      segments.push(this.segments[this.index[moment]]);
-    }
-    return segments;
-  };
-
-  MemoryStore.prototype.storeSegment = function(segment) {
-    var deletedId;
-    if (this.hasId(segment.id)) {
-      this.segments[segment.id] = segment;
-      this.index[moment(segment.ts).valueOf()] = segment.id;
-      if (Object.keys(this.segments).length <= this.options.size) {
-        return;
-      }
-      deletedId = this.ids.shift();
-      if (!this.segments[deletedId]) {
-        return;
-      }
-      delete this.index[moment(this.segments[deletedId].ts).valueOf()];
-      delete this.segments[deletedId];
-      return debug("Expired segment " + deletedId);
-    }
-  };
-
-  MemoryStore.prototype.deleteSegment = function(id) {
-    var segment;
-    segment = this.segments[id];
-    if (!segment) {
-      return;
-    }
-    delete this.index[segment.ts.valueOf()];
-    delete this.segments[id];
-    return debug("Expired segment " + id);
+    })(this))));
   };
 
   return MemoryStore;
