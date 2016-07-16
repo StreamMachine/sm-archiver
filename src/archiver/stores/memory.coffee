@@ -48,14 +48,14 @@ module.exports = class MemoryStore
     #----------
 
     get: (options) ->
-        options = _.clone(options or {})
-        options.from = if options.from then moment(options.from).valueOf() else -1
-        options.to = if options.to then moment(options.to).valueOf() else Infinity
         segments = []
-        return segments if options.to <= @index[0]
-        return segments if options.from != -1 and options.from < @index[0]
-        debug "Searching from #{options.from} to #{options.to}"
-        return _.values _.pick(@segments,_.filter(@index,(id) => id >= options.from and id < options.to))
+        first = _.first @index
+        last = _.last @index
+        from = if options.from then moment(options.from).valueOf() else first
+        to = if options.to then moment(options.to).valueOf() else last
+        return segments if from < first or to <= first
+        debug "Searching from #{from} to #{to}"
+        return _.values _.pick(@segments,_.filter(@index,(id) => id >= from and id < to))
 
     #----------
 

@@ -48,21 +48,19 @@ module.exports = MemoryStore = (function() {
   };
 
   MemoryStore.prototype.get = function(options) {
-    var segments;
-    options = _.clone(options || {});
-    options.from = options.from ? moment(options.from).valueOf() : -1;
-    options.to = options.to ? moment(options.to).valueOf() : Infinity;
+    var first, from, last, segments, to;
     segments = [];
-    if (options.to <= this.index[0]) {
+    first = _.first(this.index);
+    last = _.last(this.index);
+    from = options.from ? moment(options.from).valueOf() : first;
+    to = options.to ? moment(options.to).valueOf() : last;
+    if (from < first || to <= first) {
       return segments;
     }
-    if (options.from !== -1 && options.from < this.index[0]) {
-      return segments;
-    }
-    debug("Searching from " + options.from + " to " + options.to);
+    debug("Searching from " + from + " to " + to);
     return _.values(_.pick(this.segments, _.filter(this.index, (function(_this) {
       return function(id) {
-        return id >= options.from && id < options.to;
+        return id >= from && id < to;
       };
     })(this))));
   };
