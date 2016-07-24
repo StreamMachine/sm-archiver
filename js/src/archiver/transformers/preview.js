@@ -5,32 +5,33 @@ var PreviewTransformer, debug,
 
 debug = require("debug")("sm:archiver:transformers:preview");
 
-module.exports = PreviewTransformer = (function(superClass) {
+PreviewTransformer = (function(superClass) {
   extend(PreviewTransformer, superClass);
 
-  function PreviewTransformer(width, length) {
+  function PreviewTransformer(stream, width, length) {
+    this.stream = stream;
     this.width = width;
     this.length = length;
-    this._getSamplesPerPixel = bind(this._getSamplesPerPixel, this);
-    this._getResampleOptions = bind(this._getResampleOptions, this);
+    this.getSamplesPerPixel = bind(this.getSamplesPerPixel, this);
+    this.getResampleOptions = bind(this.getResampleOptions, this);
     this.psegWidth = Math.ceil(this.width / this.length);
     PreviewTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
-  PreviewTransformer.prototype._transform = function(obj, encoding, cb) {
-    var resample_options;
-    debug("Segment " + obj.id);
-    resample_options = this._getResampleOptions(obj);
-    obj.preview = obj.wavedata.resample(resample_options).adapter.data;
-    this.push(obj);
-    return cb();
+  PreviewTransformer.prototype._transform = function(segment, encoding, callback) {
+    var options;
+    debug("Segment " + segment.id + " from " + this.stream.key);
+    options = this.getResampleOptions(segment);
+    segment.preview = segment.wavedata.resample(options).adapter.data;
+    this.push(segment);
+    return callback();
   };
 
-  PreviewTransformer.prototype._getResampleOptions = function(segment) {
-    if (this._getSamplesPerPixel(segment) < segment.wavedata.adapter.scale) {
+  PreviewTransformer.prototype.getResampleOptions = function(segment) {
+    if (this.getSamplesPerPixel(segment) < segment.wavedata.adapter.scale) {
       return {
         scale: segment.wavedata.adapter.scale
       };
@@ -40,12 +41,14 @@ module.exports = PreviewTransformer = (function(superClass) {
     };
   };
 
-  PreviewTransformer.prototype._getSamplesPerPixel = function(segment) {
+  PreviewTransformer.prototype.getSamplesPerPixel = function(segment) {
     return Math.floor(segment.wavedata.duration * segment.wavedata.adapter.sample_rate / this.psegWidth);
   };
 
   return PreviewTransformer;
 
 })(require("stream").Transform);
+
+module.exports = PreviewTransformer;
 
 //# sourceMappingURL=preview.js.map

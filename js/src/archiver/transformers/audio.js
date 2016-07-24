@@ -6,7 +6,7 @@ _ = require("underscore");
 
 debug = require("debug")("sm:archiver:transformers:audio");
 
-module.exports = AudioTransformer = (function(superClass) {
+AudioTransformer = (function(superClass) {
   extend(AudioTransformer, superClass);
 
   function AudioTransformer(stream) {
@@ -14,19 +14,20 @@ module.exports = AudioTransformer = (function(superClass) {
     AudioTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
-  AudioTransformer.prototype._transform = function(seg, encoding, cb) {
-    var dur;
-    debug("Segment " + seg.id);
-    dur = this.stream.secsToOffset(seg.duration / 1000);
-    return this.stream._rbuffer.range(seg.ts_actual, dur, (function(_this) {
-      return function(err, chunks) {
-        var audio, b, buffers, duration, i, len, length, meta;
-        if (err) {
-          console.error("Error getting segment rewind: " + err);
-          cb();
+  AudioTransformer.prototype._transform = function(segment, encoding, callback) {
+    var duration;
+    duration = this.stream.secsToOffset(segment.duration / 1000);
+    debug("Segment " + segment.id + " (" + duration + ") from " + this.stream.key);
+    debug("Segment " + segment.id + ": " + segment.ts_actual);
+    return this.stream._rbuffer.range(segment.ts_actual, duration, (function(_this) {
+      return function(error, chunks) {
+        var audio, b, buffers, i, len, length, meta;
+        if (error) {
+          console.error("Error getting segment rewind: " + error);
+          callback();
           return false;
         }
         buffers = [];
@@ -43,12 +44,13 @@ module.exports = AudioTransformer = (function(superClass) {
           }
         }
         audio = Buffer.concat(buffers, length);
-        _this.push(_.extend(seg, {
+        debug(audio);
+        _this.push(_.extend(segment, {
           audio: audio,
           duration: duration,
           meta: meta
         }));
-        return cb();
+        return callback();
       };
     })(this));
   };
@@ -56,5 +58,7 @@ module.exports = AudioTransformer = (function(superClass) {
   return AudioTransformer;
 
 })(require("stream").Transform);
+
+module.exports = AudioTransformer;
 
 //# sourceMappingURL=audio.js.map

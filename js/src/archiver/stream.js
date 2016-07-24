@@ -32,7 +32,7 @@ debug = require("debug")("sm:archiver:stream");
 
 segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "preview"];
 
-module.exports = StreamArchiver = (function(superClass) {
+StreamArchiver = (function(superClass) {
   extend(StreamArchiver, superClass);
 
   function StreamArchiver(stream, options1) {
@@ -40,21 +40,21 @@ module.exports = StreamArchiver = (function(superClass) {
     this.stream = stream;
     this.options = options1;
     this.stores = {};
-    this.transformers = [new AudioTransformer(this.stream), new WaveformTransformer(this.options.pixels_per_second)];
+    this.transformers = [new AudioTransformer(this.stream), new WaveformTransformer(this.stream, this.options.pixels_per_second)];
     if ((ref = this.options.stores) != null ? (ref1 = ref.memory) != null ? ref1.enabled : void 0 : void 0) {
-      this.stores.memory = new MemoryStore(this.options.stores.memory);
-      this.transformers.unshift(new QueueMemoryStoreTransformer(this.stores.memory));
-      this.transformers.push(new MemoryStoreTransformer(this.stores.memory));
+      this.stores.memory = new MemoryStore(this.stream, this.options.stores.memory);
+      this.transformers.unshift(new QueueMemoryStoreTransformer(this.stream, this.stores.memory));
+      this.transformers.push(new MemoryStoreTransformer(this.stream, this.stores.memory));
     }
     if ((ref2 = this.options.stores) != null ? (ref3 = ref2.elasticsearch) != null ? ref3.enabled : void 0 : void 0) {
       this.stores.elasticsearch = new ElasticsearchStore(this.stream, this.options.stores.elasticsearch);
-      this.transformers.push(new ElasticsearchStoreTransformer(this.stores.elasticsearch));
+      this.transformers.push(new ElasticsearchStoreTransformer(this.stream, this.stores.elasticsearch));
     }
     if ((ref4 = this.options.stores) != null ? (ref5 = ref4.s3) != null ? ref5.enabled : void 0 : void 0) {
       this.stores.s3 = new S3Store(this.stream, this.options.stores.s3);
-      this.transformers.push(new S3StoreTransformer(this.stores.s3));
+      this.transformers.push(new S3StoreTransformer(this.stream, this.stores.s3));
     }
-    this.transformers.unshift(new IdTransformer());
+    this.transformers.unshift(new IdTransformer(this.stream));
     _.each(this.transformers, (function(_this) {
       return function(transformer, index) {
         var previous;
@@ -82,7 +82,7 @@ module.exports = StreamArchiver = (function(superClass) {
     })(this));
     this.stream._once_source_loaded((function(_this) {
       return function() {
-        return _this.stream.source.getHLSSnapshot(function(err, snapshot) {
+        return _this.stream.source.getHLSSnapshot(function(error, snapshot) {
           debug("HLS snapshot from initial source load of " + _this.stream.key + " (" + snapshot.segments.length + " segments)");
           return _this.stream.emit("hls_snapshot", snapshot);
         });
@@ -100,18 +100,18 @@ module.exports = StreamArchiver = (function(superClass) {
         return results;
       };
     })(this));
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
   StreamArchiver.prototype.getPreview = function(options, cb) {
     return this.getPreviewFromMemory(options, (function(_this) {
-      return function(err, preview) {
-        if (err || (preview && preview.length)) {
-          return cb(err, preview);
+      return function(error, preview) {
+        if (error || (preview && preview.length)) {
+          return cb(error, preview);
         }
-        return _this.getPreviewFromElasticsearch(options, function(err, preview) {
-          if (err || (preview && preview.length)) {
-            return cb(err, preview);
+        return _this.getPreviewFromElasticsearch(options, function(error, preview) {
+          if (error || (preview && preview.length)) {
+            return cb(error, preview);
           }
           return cb(null, []);
         });
@@ -142,8 +142,8 @@ module.exports = StreamArchiver = (function(superClass) {
   StreamArchiver.prototype.generatePreview = function(segments, cb) {
     var preview, previewTransformer, wavedataTransformer;
     preview = [];
-    wavedataTransformer = new WavedataTransformer;
-    previewTransformer = new PreviewTransformer(this.options.preview_width, segments.length);
+    wavedataTransformer = new WavedataTransformer(this.stream);
+    previewTransformer = new PreviewTransformer(this.stream, this.options.preview_width, segments.length);
     wavedataTransformer.pipe(previewTransformer);
     previewTransformer.on("readable", (function(_this) {
       return function() {
@@ -168,11 +168,42 @@ module.exports = StreamArchiver = (function(superClass) {
     return previewTransformer.end();
   };
 
+  StreamArchiver.prototype.getSegment = function(id, cb) {
+    return this.getSegmentFromMemory(id, (function(_this) {
+      return function(error, segment) {
+        if (error || segment) {
+          return cb(error, (segment ? _.pick(segment, segmentKeys.concat(["waveform"])) : void 0));
+        }
+        return _this.getSegmentFromElasticsearch(id, function(error, segment) {
+          return cb(error, (segment ? _.pick(segment, segmentKeys.concat(["waveform"])) : void 0));
+        });
+      };
+    })(this));
+  };
+
+  StreamArchiver.prototype.getSegmentFromMemory = function(id, cb) {
+    if (!this.stores.memory) {
+      return cb();
+    }
+    return cb(null, this.stores.memory.getById(id));
+  };
+
+  StreamArchiver.prototype.getSegmentFromElasticsearch = function(id, cb) {
+    if (!this.stores.elasticsearch) {
+      return cb();
+    }
+    return this.stores.elasticsearch.getSegmentById(id).then(function(segment) {
+      return cb(null, segment);
+    })["catch"](function() {
+      return cb();
+    });
+  };
+
   StreamArchiver.prototype.getWaveform = function(id, cb) {
     return this.getWaveformFromMemory(id, (function(_this) {
-      return function(err, waveform) {
-        if (err || waveform) {
-          return cb(err, waveform);
+      return function(error, waveform) {
+        if (error || waveform) {
+          return cb(error, waveform);
         }
         return _this.getWaveformFromElasticsearch(id, cb);
       };
@@ -200,9 +231,9 @@ module.exports = StreamArchiver = (function(superClass) {
 
   StreamArchiver.prototype.getAudio = function(id, format, cb) {
     return this.getAudioFromMemory(id, format, (function(_this) {
-      return function(err, audio) {
-        if (err || audio) {
-          return cb(err, audio);
+      return function(error, audio) {
+        if (error || audio) {
+          return cb(error, audio);
         }
         return _this.getAudioFromS3(id, format, cb);
       };
@@ -231,5 +262,7 @@ module.exports = StreamArchiver = (function(superClass) {
   return StreamArchiver;
 
 })(require("events").EventEmitter);
+
+module.exports = StreamArchiver;
 
 //# sourceMappingURL=stream.js.map

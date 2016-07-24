@@ -4,19 +4,20 @@ var ElasticsearchStoreTransformer, debug,
 
 debug = require("debug")("sm:archiver:transformers:stores:elasticsearch");
 
-module.exports = ElasticsearchStoreTransformer = (function(superClass) {
+ElasticsearchStoreTransformer = (function(superClass) {
   extend(ElasticsearchStoreTransformer, superClass);
 
-  function ElasticsearchStoreTransformer(elasticsearch) {
+  function ElasticsearchStoreTransformer(stream, elasticsearch) {
+    this.stream = stream;
     this.elasticsearch = elasticsearch;
     ElasticsearchStoreTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
   ElasticsearchStoreTransformer.prototype._transform = function(segment, encoding, callback) {
-    debug("Segment " + segment.id);
+    debug("Segment " + segment.id + " from " + this.stream.key);
     return this.elasticsearch.indexSegment(segment).then((function(_this) {
       return function() {
         _this.push(segment);
@@ -28,5 +29,7 @@ module.exports = ElasticsearchStoreTransformer = (function(superClass) {
   return ElasticsearchStoreTransformer;
 
 })(require("stream").Transform);
+
+module.exports = ElasticsearchStoreTransformer;
 
 //# sourceMappingURL=elasticsearch.js.map

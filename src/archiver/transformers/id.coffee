@@ -1,21 +1,21 @@
-moment = require "moment"
+debug = require("debug") "sm:archiver:transformers:id"
 
-debug = require("debug")("sm:archiver:transformers:id")
+class IdTransformer extends require("stream").Transform
+    constructor: (@stream) ->
+        super objectMode: true
+        debug "Created for #{@stream.key}"
 
-module.exports = class IdTransformer extends require("stream").Transform
-    constructor: ()->
-        super objectMode:true
-        debug "Created"
-
-#----------
+    #----------
 
     _transform: (segment, encoding, callback) ->
-        id = moment(segment.ts).valueOf()
-        debug "Segment #{segment.id} -> #{id}"
+        id = segment.ts_actual.valueOf()
+        debug "Segment #{segment.id} -> #{id} from #{@stream.key}"
         segment.id = id
         @push segment
         callback()
 
-#----------
+    #----------
 
 #----------
+
+module.exports = IdTransformer

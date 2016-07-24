@@ -6,13 +6,14 @@ moment = require("moment");
 
 debug = require("debug")("sm:archiver:stores:memory");
 
-module.exports = MemoryStore = (function() {
-  function MemoryStore(options1) {
+MemoryStore = (function() {
+  function MemoryStore(stream, options1) {
+    this.stream = stream;
     this.options = options1;
     this.queue = {};
     this.segments = {};
     this.index = [];
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
   MemoryStore.prototype.has = function(segment) {
@@ -20,30 +21,30 @@ module.exports = MemoryStore = (function() {
   };
 
   MemoryStore.prototype.enqueue = function(segment) {
-    debug("Enqueuing " + segment.id);
+    debug("Enqueuing " + segment.id + " from " + this.stream.key);
     return this.queue[segment.id] = segment;
   };
 
   MemoryStore.prototype.store = function(segment) {
-    debug("Storing " + segment.id);
+    debug("Storing " + segment.id + " from " + this.stream.key);
     this.segments[segment.id] = segment;
     this.index.push(segment.id);
     delete this.queue[segment.id];
     if (this.index.length > this.options.size) {
       this.expire();
     }
-    return debug(this.index.length + " segments in memory");
+    return debug(this.index.length + " segments in memory from " + this.stream.key);
   };
 
   MemoryStore.prototype.expire = function() {
     var id;
     id = this.index.shift();
     delete this.segments[id];
-    return debug("Expired segment " + id);
+    return debug("Expired segment " + id + " from " + this.stream.key);
   };
 
   MemoryStore.prototype.getById = function(id) {
-    debug("Getting " + id);
+    debug("Getting " + id + " from " + this.stream.key);
     return this.segments[id];
   };
 
@@ -57,7 +58,7 @@ module.exports = MemoryStore = (function() {
     if (from < first || to <= first) {
       return segments;
     }
-    debug("Searching from " + from + " to " + to);
+    debug("Searching " + from + " -> " + to + " from " + this.stream.key);
     return _.values(_.pick(this.segments, _.filter(this.index, (function(_this) {
       return function(id) {
         return id >= from && id < to;
@@ -68,5 +69,7 @@ module.exports = MemoryStore = (function() {
   return MemoryStore;
 
 })();
+
+module.exports = MemoryStore;
 
 //# sourceMappingURL=memory.js.map

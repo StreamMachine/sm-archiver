@@ -1,14 +1,14 @@
-debug = require("debug")("sm:archiver:transformers:stores:elasticsearch")
+debug = require("debug") "sm:archiver:transformers:stores:elasticsearch"
 
-module.exports = class ElasticsearchStoreTransformer extends require("stream").Transform
-    constructor: (@elasticsearch)->
-        super objectMode:true
-        debug "Created"
+class ElasticsearchStoreTransformer extends require("stream").Transform
+    constructor: (@stream, @elasticsearch) ->
+        super objectMode: true
+        debug "Created for #{@stream.key}"
 
     #----------
 
     _transform: (segment, encoding, callback) ->
-        debug "Segment #{segment.id}"
+        debug "Segment #{segment.id} from #{@stream.key}"
         @elasticsearch.indexSegment(segment).then =>
             @push segment
             callback()
@@ -16,3 +16,5 @@ module.exports = class ElasticsearchStoreTransformer extends require("stream").T
     #----------
 
 #----------
+
+module.exports = ElasticsearchStoreTransformer
