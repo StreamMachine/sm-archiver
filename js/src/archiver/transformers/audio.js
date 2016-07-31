@@ -20,11 +20,10 @@ AudioTransformer = (function(superClass) {
   AudioTransformer.prototype._transform = function(segment, encoding, callback) {
     var duration;
     duration = this.stream.secsToOffset(segment.duration / 1000);
-    debug("Segment " + segment.id + " (" + duration + ") from " + this.stream.key);
-    debug("Segment " + segment.id + ": " + segment.ts_actual);
-    return this.stream._rbuffer.range(segment.ts_actual, duration, (function(_this) {
+    debug("Segment " + segment.id + " from " + this.stream.key);
+    return this.stream._rbuffer.range(segment.ts, duration, (function(_this) {
       return function(error, chunks) {
-        var audio, b, buffers, i, len, length, meta;
+        var audio, buffers, chunk, i, len, length, meta;
         if (error) {
           console.error("Error getting segment rewind: " + error);
           callback();
@@ -35,16 +34,15 @@ AudioTransformer = (function(superClass) {
         duration = 0;
         meta = null;
         for (i = 0, len = chunks.length; i < len; i++) {
-          b = chunks[i];
-          length += b.data.length;
-          duration += b.duration;
-          buffers.push(b.data);
+          chunk = chunks[i];
+          length += chunk.data.length;
+          duration += chunk.duration;
+          buffers.push(chunk.data);
           if (!meta) {
-            meta = b.meta;
+            meta = chunk.meta;
           }
         }
         audio = Buffer.concat(buffers, length);
-        debug(audio);
         _this.push(_.extend(segment, {
           audio: audio,
           duration: duration,

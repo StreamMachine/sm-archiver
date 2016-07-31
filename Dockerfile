@@ -18,6 +18,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get clean \
 
 WORKDIR /data
 
-EXPOSE 9000
+EXPOSE 9001
 
 CMD npm start

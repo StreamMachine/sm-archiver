@@ -1,4 +1,4 @@
-debug = require("debug") "sm:archiver:transformers:stores:s3"
+debug = require("debug") "sm:archiver:transformers:s3"
 
 class S3StoreTransformer extends require("stream").Transform
     constructor: (@stream, @s3) ->

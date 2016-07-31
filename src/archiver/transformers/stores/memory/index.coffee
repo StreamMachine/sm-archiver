@@ -1,4 +1,4 @@
-debug = require("debug") "sm:archiver:transformers:stores:memory"
+debug = require("debug") "sm:archiver:transformers:memory"
 
 class MemoryStoreTransformer extends require("stream").Transform
     constructor: (@stream, @memory, @options) ->

@@ -99,6 +99,7 @@ class StreamArchiver extends require("events").EventEmitter
 
     generatePreview: (segments, cb) ->
         preview = []
+        return cb(null, preview) if not segments.length
         wavedataTransformer = new WavedataTransformer @stream
         previewTransformer = new PreviewTransformer @stream, @options.preview_width,segments.length
         wavedataTransformer.pipe previewTransformer

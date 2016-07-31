@@ -1,6 +1,7 @@
 _ = require "underscore"
 moment = require "moment"
 debug = require("debug") "sm:archiver:stores:memory"
+R_TIMESTAMP = /^[1-9][0-9]*$/
 
 class MemoryStore
     constructor: (@stream, @options) ->
@@ -47,14 +48,22 @@ class MemoryStore
     #----------
 
     get: (options) ->
-        segments = []
         first = _.first @index
         last = _.last @index
-        from = if options.from then moment(options.from).valueOf() else first
-        to = if options.to then moment(options.to).valueOf() else last
-        return segments if from < first or to <= first
+        from = @parseId options.from, first
+        to = @parseId options.to, last
         debug "Searching #{from} -> #{to} from #{@stream.key}"
+        return [] if from < first or to <= first
         return _.values _.pick(@segments, _.filter(@index, (id) => id >= from and id < to))
+
+    #----------
+
+    parseId: (id, defaultId) ->
+        if not id
+            return defaultId
+        if R_TIMESTAMP.test(id)
+            return Number(id)
+        moment(id).valueOf()
 
     #----------
 

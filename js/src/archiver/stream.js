@@ -142,6 +142,9 @@ StreamArchiver = (function(superClass) {
   StreamArchiver.prototype.generatePreview = function(segments, cb) {
     var preview, previewTransformer, wavedataTransformer;
     preview = [];
+    if (!segments.length) {
+      return cb(null, preview);
+    }
     wavedataTransformer = new WavedataTransformer(this.stream);
     previewTransformer = new PreviewTransformer(this.stream, this.options.preview_width, segments.length);
     wavedataTransformer.pipe(previewTransformer);

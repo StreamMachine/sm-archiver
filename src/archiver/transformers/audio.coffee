@@ -11,7 +11,7 @@ class AudioTransformer extends require("stream").Transform
     _transform: (segment,encoding,callback) ->
         duration = @stream.secsToOffset segment.duration / 1000
         debug "Segment #{segment.id} from #{@stream.key}"
-        @stream._rbuffer.range segment.ts_actual, duration, (error, chunks) =>
+        @stream._rbuffer.range segment.ts, duration, (error, chunks) =>
             if error
                 console.error "Error getting segment rewind: #{error}"
                 callback()

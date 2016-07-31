@@ -1,4 +1,4 @@
-debug = require("debug") "sm:archiver:transformers:stores:elasticsearch"
+debug = require("debug") "sm:archiver:transformers:elasticsearch"
 
 class ElasticsearchStoreTransformer extends require("stream").Transform
     constructor: (@stream, @elasticsearch) ->

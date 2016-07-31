@@ -1,8 +1,9 @@
 P = require "bluebird"
 _ = require "underscore"
+moment = require "moment"
 elasticsearch = require "elasticsearch"
 debug = require("debug") "sm:archiver:stores:elasticsearch"
-
+R_TIMESTAMP = /^[1-9][0-9]*$/
 segmentKeys = [
     "id",
     "ts",
@@ -43,27 +44,19 @@ class ElasticsearchStore
     #----------
 
     getSegments: (options) ->
-        if not options.from and not options.to
-            options.from = "now-#{@hours}h"
-        else if options.from and not options.to
-            options.to = options.from
-            if not options.to.startsWith("now")
-                 options.to += "||"
-            options.to += "+#{@hours}h"
-        else if options.to and not options.from
-            options.from = options.to
-            if not options.from.startsWith("now")
-                options.from += "||"
-            options.from += "-#{@hours}h"
-        debug "Searching #{options.from} -> #{options.to} from #{@stream.key}"
+        first = moment().subtract(@hours, 'hours').valueOf()
+        last = moment().valueOf()
+        from = @parseId options.from, first
+        to = @parseId options.to, last
+        debug "Searching #{from} -> #{to} from #{@stream.key}"
         @search(index: @stream.key, type: "segment", body: {
             size: @options.size,
             sort: "id",
             query: {
                 range: {
-                    ts: {
-                        gte: options.from,
-                        lt: options.to
+                    id: {
+                        gte: from,
+                        lt: to
                     }
                 }
             }
@@ -71,6 +64,15 @@ class ElasticsearchStore
         .then((result) => P.map(result.hits.hits, (hit) => hit._source)) \
         .catch (error) =>
             debug "SEARCH Error for #{@stream.key}: #{error}"
+
+    #----------
+
+    parseId: (id, defaultId) ->
+        if not id
+            return defaultId
+        if R_TIMESTAMP.test(id)
+            return Number(id)
+        moment(id).valueOf()
 
     #----------
 

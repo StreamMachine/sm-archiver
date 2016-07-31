@@ -1,12 +1,16 @@
-var ElasticsearchStore, P, _, debug, elasticsearch, segmentKeys;
+var ElasticsearchStore, P, R_TIMESTAMP, _, debug, elasticsearch, moment, segmentKeys;
 
 P = require("bluebird");
 
 _ = require("underscore");
 
+moment = require("moment");
+
 elasticsearch = require("elasticsearch");
 
 debug = require("debug")("sm:archiver:stores:elasticsearch");
+
+R_TIMESTAMP = /^[1-9][0-9]*$/;
 
 segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "waveform"];
 
@@ -52,22 +56,12 @@ ElasticsearchStore = (function() {
   };
 
   ElasticsearchStore.prototype.getSegments = function(options) {
-    if (!options.from && !options.to) {
-      options.from = "now-" + this.hours + "h";
-    } else if (options.from && !options.to) {
-      options.to = options.from;
-      if (!options.to.startsWith("now")) {
-        options.to += "||";
-      }
-      options.to += "+" + this.hours + "h";
-    } else if (options.to && !options.from) {
-      options.from = options.to;
-      if (!options.from.startsWith("now")) {
-        options.from += "||";
-      }
-      options.from += "-" + this.hours + "h";
-    }
-    debug("Searching " + options.from + " -> " + options.to + " from " + this.stream.key);
+    var first, from, last, to;
+    first = moment().subtract(this.hours, 'hours').valueOf();
+    last = moment().valueOf();
+    from = this.parseId(options.from, first);
+    to = this.parseId(options.to, last);
+    debug("Searching " + from + " -> " + to + " from " + this.stream.key);
     return this.search({
       index: this.stream.key,
       type: "segment",
@@ -76,9 +70,9 @@ ElasticsearchStore = (function() {
         sort: "id",
         query: {
           range: {
-            ts: {
-              gte: options.from,
-              lt: options.to
+            id: {
+              gte: from,
+              lt: to
             }
           }
         }
@@ -94,6 +88,16 @@ ElasticsearchStore = (function() {
         return debug("SEARCH Error for " + _this.stream.key + ": " + error);
       };
     })(this));
+  };
+
+  ElasticsearchStore.prototype.parseId = function(id, defaultId) {
+    if (!id) {
+      return defaultId;
+    }
+    if (R_TIMESTAMP.test(id)) {
+      return Number(id);
+    }
+    return moment(id).valueOf();
   };
 
   return ElasticsearchStore;
