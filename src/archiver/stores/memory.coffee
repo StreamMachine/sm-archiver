@@ -1,14 +1,14 @@
 _ = require "underscore"
 moment = require "moment"
+debug = require("debug") "sm:archiver:stores:memory"
+R_TIMESTAMP = /^[1-9][0-9]*$/
 
-debug = require("debug")("sm:archiver:stores:memory")
-
-module.exports = class MemoryStore
-    constructor:(@options) ->
+class MemoryStore
+    constructor: (@stream, @options) ->
         @queue = {}
         @segments = {}
         @index = []
-        debug "Created"
+        debug "Created for #{@stream.key}"
 
     #----------
 
@@ -18,45 +18,55 @@ module.exports = class MemoryStore
     #----------
 
     enqueue: (segment) ->
-        debug "Enqueuing #{segment.id}"
+        debug "Enqueuing #{segment.id} from #{@stream.key}"
         @queue[segment.id] = segment
 
     #----------
 
     store: (segment) ->
-        debug "Storing #{segment.id}"
+        debug "Storing #{segment.id} from #{@stream.key}"
         @segments[segment.id] = segment
         @index.push segment.id
         delete @queue[segment.id];
         if @index.length > @options.size
             @expire()
-        debug "#{@index.length} segments in memory"
+        debug "#{@index.length} segments in memory from #{@stream.key}"
 
     #----------
 
     expire: () ->
         id = @index.shift()
         delete @segments[id]
-        debug "Expired segment #{id}"
+        debug "Expired segment #{id} from #{@stream.key}"
 
     #----------
 
     getById: (id) ->
-        debug "Getting #{id}"
+        debug "Getting #{id} from #{@stream.key}"
         return @segments[id]
 
     #----------
 
     get: (options) ->
-        segments = []
         first = _.first @index
         last = _.last @index
-        from = if options.from then moment(options.from).valueOf() else first
-        to = if options.to then moment(options.to).valueOf() else last
-        return segments if from < first or to <= first
-        debug "Searching from #{from} to #{to}"
-        return _.values _.pick(@segments,_.filter(@index,(id) => id >= from and id < to))
+        from = @parseId options.from, first
+        to = @parseId options.to, last
+        debug "Searching #{from} -> #{to} from #{@stream.key}"
+        return [] if from < first or to <= first
+        return _.values _.pick(@segments, _.filter(@index, (id) => id >= from and id < to))
+
+    #----------
+
+    parseId: (id, defaultId) ->
+        if not id
+            return defaultId
+        if R_TIMESTAMP.test(id)
+            return Number(id)
+        moment(id).valueOf()
 
     #----------
 
 #----------
+
+module.exports = MemoryStore

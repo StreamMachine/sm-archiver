@@ -1,23 +1,26 @@
 waveform    = require "sm-waveform"
 PassThrough = require("stream").PassThrough
+debug = require("debug") "sm:archiver:transformers:waveform"
 
-debug = require("debug")("sm:archiver:transformers:waveform")
-
-module.exports = class WaveformTransformer extends require("stream").Transform
-    constructor: (@pps)->
+class WaveformTransformer extends require("stream").Transform
+    constructor: (@stream, @pps) ->
         super objectMode:true
-        debug "Created"
+        debug "Created for #{@stream.key}"
 
     #----------
 
-    _transform: (obj,encoding,cb) ->
+    _transform: (segment, encoding, callback) ->
         pt = new PassThrough()
-        debug "Segment #{obj.id}"
-        new waveform.Waveform pt, pixelsPerSecond:@pps, (err,wave) =>
-            return cb err if err
-            obj.waveform = wave.asJSON()
-            @push obj
-            cb()
-        pt.end obj.audio
+        debug "Segment #{segment.id} from #{@stream.key}"
+        new waveform.Waveform pt, pixelsPerSecond: @pps, (error, waveform) =>
+            return callback error if error
+            segment.waveform = waveform.asJSON()
+            @push segment
+            callback()
+        pt.end segment.audio
 
     #----------
+
+#----------
+
+module.exports = WaveformTransformer

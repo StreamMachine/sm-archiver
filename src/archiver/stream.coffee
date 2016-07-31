@@ -1,11 +1,9 @@
 _ = require "underscore"
-
 IdTransformer = require "./transformers/id"
 AudioTransformer = require "./transformers/audio"
 WaveformTransformer = require "./transformers/waveform"
 WavedataTransformer = require "./transformers/wavedata"
 PreviewTransformer = require "./transformers/preview"
-
 MemoryStore = require "./stores/memory"
 QueueMemoryStoreTransformer = require "./transformers/stores/memory/queue"
 MemoryStoreTransformer = require "./transformers/stores/memory"
@@ -13,9 +11,7 @@ ElasticsearchStore = require "./stores/elasticsearch"
 ElasticsearchStoreTransformer = require "./transformers/stores/elasticsearch"
 S3Store = require "./stores/s3"
 S3StoreTransformer = require "./transformers/stores/s3"
-
-debug = require("debug")("sm:archiver:stream")
-
+debug = require("debug") "sm:archiver:stream"
 segmentKeys = [
     "id",
     "ts",
@@ -29,29 +25,28 @@ segmentKeys = [
     "preview"
 ]
 
-module.exports = class StreamArchiver extends require("events").EventEmitter
-    constructor: (@stream,@options) ->
+class StreamArchiver extends require("events").EventEmitter
+    constructor: (@stream, @options) ->
         @stores = {}
-
         @transformers = [
             new AudioTransformer(@stream),
-            new WaveformTransformer(@options.pixels_per_second)
+            new WaveformTransformer(@stream, @options.pixels_per_second)
         ]
 
         if @options.stores?.memory?.enabled
-            @stores.memory = new MemoryStore(@options.stores.memory)
-            @transformers.unshift new QueueMemoryStoreTransformer(@stores.memory)
-            @transformers.push new MemoryStoreTransformer(@stores.memory)
+            @stores.memory = new MemoryStore @stream, @options.stores.memory
+            @transformers.unshift new QueueMemoryStoreTransformer @stream, @stores.memory
+            @transformers.push new MemoryStoreTransformer @stream, @stores.memory
 
         if @options.stores?.elasticsearch?.enabled
-            @stores.elasticsearch = new ElasticsearchStore(@stream,@options.stores.elasticsearch)
-            @transformers.push new ElasticsearchStoreTransformer(@stores.elasticsearch)
+            @stores.elasticsearch = new ElasticsearchStore @stream, @options.stores.elasticsearch
+            @transformers.push new ElasticsearchStoreTransformer @stream, @stores.elasticsearch
 
         if @options.stores?.s3?.enabled
-            @stores.s3 = new S3Store(@stream,@options.stores.s3)
-            @transformers.push new S3StoreTransformer(@stores.s3)
+            @stores.s3 = new S3Store @stream, @options.stores.s3
+            @transformers.push new S3StoreTransformer @stream, @stores.s3
 
-        @transformers.unshift new IdTransformer()
+        @transformers.unshift new IdTransformer @stream
 
         _.each @transformers, (transformer, index) =>
             previous = @transformers[index - 1];
@@ -67,7 +62,7 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
             @stream.emit "hls_snapshot", snapshot
 
         @stream._once_source_loaded =>
-            @stream.source.getHLSSnapshot (err,snapshot) =>
+            @stream.source.getHLSSnapshot (error, snapshot) =>
                 debug "HLS snapshot from initial source load of #{@stream.key} (#{snapshot.segments.length} segments)"
                 @stream.emit "hls_snapshot", snapshot
 
@@ -75,16 +70,16 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
             for segment in snapshot.segments
                 _.first(@transformers).write segment
 
-        debug "Created"
+        debug "Created for #{@stream.key}"
 
     #----------
 
     getPreview: (options, cb) ->
-        @getPreviewFromMemory options,(err,preview) =>
-            return cb(err,preview) if err or (preview and preview.length)
-            @getPreviewFromElasticsearch options,(err,preview) =>
-                return cb(err,preview) if err or (preview and preview.length)
-                return cb null,[]
+        @getPreviewFromMemory options, (error, preview) =>
+            return cb error, preview if error or (preview and preview.length)
+            @getPreviewFromElasticsearch options, (error, preview) =>
+                return cb error, preview if error or (preview and preview.length)
+                return cb null, []
 
     #----------
 
@@ -94,70 +89,95 @@ module.exports = class StreamArchiver extends require("events").EventEmitter
 
     #----------
 
-    getPreviewFromElasticsearch: (options,cb) ->
+    getPreviewFromElasticsearch: (options, cb) ->
         return cb() if !@stores.elasticsearch
         @stores.elasticsearch.getSegments(options) \
             .catch(() -> [])
-            .then((segments) => @generatePreview(segments,cb))
+            .then((segments) => @generatePreview segments, cb)
 
     #----------
 
-    generatePreview: (segments,cb) ->
+    generatePreview: (segments, cb) ->
         preview = []
-        wavedataTransformer = new WavedataTransformer
-        previewTransformer = new PreviewTransformer @options.preview_width,segments.length
+        return cb(null, preview) if not segments.length
+        wavedataTransformer = new WavedataTransformer @stream
+        previewTransformer = new PreviewTransformer @stream, @options.preview_width,segments.length
         wavedataTransformer.pipe previewTransformer
         previewTransformer.on "readable", =>
             while segment = previewTransformer.read()
-                preview.push(_.pick(segment, segmentKeys))
+                preview.push _.pick(segment, segmentKeys)
         previewTransformer.on "end", =>
             cb null, preview
         _.each segments, (segment) =>
-            wavedataTransformer.write(segment)
+            wavedataTransformer.write segment
         previewTransformer.end()
 
     #----------
 
-    getWaveform: (id,cb) ->
-        @getWaveformFromMemory id,(err,waveform) =>
-            return cb(err,waveform) if err or waveform
-            @getWaveformFromElasticsearch id,cb
+    getSegment: (id, cb) ->
+        @getSegmentFromMemory id, (error, segment) =>
+            return cb error, (_.pick(segment, segmentKeys.concat(["waveform"])) if segment) if error or segment
+            @getSegmentFromElasticsearch id, (error, segment) =>
+                return cb error, (_.pick(segment, segmentKeys.concat(["waveform"])) if segment)
 
     #----------
 
-    getWaveformFromMemory: (id,cb) ->
+    getSegmentFromMemory: (id, cb) ->
         return cb() if !@stores.memory
-        cb(null, @stores.memory.getById(id)?.waveform)
+        cb null, @stores.memory.getById(id)
 
     #----------
 
-    getWaveformFromElasticsearch: (id,cb) ->
+    getSegmentFromElasticsearch: (id, cb) ->
         return cb() if !@stores.elasticsearch
         @stores.elasticsearch.getSegmentById(id) \
-            .then((segment) -> return cb(null, segment?.waveform)) \
+        .then((segment) -> return cb null, segment) \
+        .catch(() -> cb())
+
+    #----------
+
+    getWaveform: (id, cb) ->
+        @getWaveformFromMemory id, (error, waveform) =>
+            return cb error, waveform if error or waveform
+            @getWaveformFromElasticsearch id, cb
+
+    #----------
+
+    getWaveformFromMemory: (id, cb) ->
+        return cb() if !@stores.memory
+        cb null, @stores.memory.getById(id)?.waveform
+
+    #----------
+
+    getWaveformFromElasticsearch: (id, cb) ->
+        return cb() if !@stores.elasticsearch
+        @stores.elasticsearch.getSegmentById(id) \
+            .then((segment) -> return cb null, segment?.waveform) \
             .catch(() -> cb())
 
     #----------
 
-    getAudio: (id,format,cb) ->
-        @getAudioFromMemory id,format,(err,audio) =>
-            return cb(err,audio) if err or audio
-            @getAudioFromS3 id,format,cb
+    getAudio: (id, format, cb) ->
+        @getAudioFromMemory id, format, (error, audio) =>
+            return cb error, audio if error or audio
+            @getAudioFromS3 id, format, cb
 
     #----------
 
-    getAudioFromMemory: (id,format,cb) ->
+    getAudioFromMemory: (id, format, cb) ->
         return cb() if !@stores.memory
-        cb(null, @stores.memory.getById(id)?.audio)
+        cb null, @stores.memory.getById(id)?.audio
 
     #----------
 
-    getAudioFromS3: (id,format,cb) ->
+    getAudioFromS3: (id, format, cb) ->
         return cb() if !@stores.s3
-        @stores.s3.getAudioById(id,format) \
-            .then((audio) -> return cb(null, audio)) \
+        @stores.s3.getAudioById(id, format) \
+            .then((audio) -> return cb null, audio) \
             .catch(() -> cb())
 
     #----------
 
 #----------
+
+module.exports = StreamArchiver

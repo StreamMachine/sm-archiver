@@ -10,7 +10,7 @@ ClipExporter = require("./clip_exporter");
 
 debug = require("debug")("sm:archiver:server");
 
-module.exports = Server = (function() {
+Server = (function() {
   function Server(core, port, log) {
     this.core = core;
     this.port = port;
@@ -47,7 +47,7 @@ module.exports = Server = (function() {
         });
       };
     })(this));
-    this.app.get("/:stream/ts/:seg.(:format)", (function(_this) {
+    this.app.get("/:stream/ts/:segment.(:format)", (function(_this) {
       return function(req, res) {
         if (!req.stream.archiver) {
           return res.status(404).json({
@@ -55,8 +55,13 @@ module.exports = Server = (function() {
             error: "Stream not archived"
           });
         }
-        return req.stream.archiver.getAudio(req.params.seg, req.params.format, function(err, audio) {
-          if (err || !audio) {
+        return req.stream.archiver.getAudio(req.params.segment, req.params.format, function(error, audio) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!audio) {
             return res.status(404).json({
               status: 404,
               error: "Audio not found"
@@ -85,19 +90,25 @@ module.exports = Server = (function() {
             error: "Stream not archived"
           });
         }
-        return req.stream.archiver.getPreview(req.query, function(err, preview) {
-          if (err || !preview) {
+        return req.stream.archiver.getPreview(req.query, function(error, preview) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!preview) {
             return res.status(404).json({
               status: 404,
               error: "Preview not found"
             });
           } else {
+            res.set("X-Archiver-Preview-Length", preview.length);
             return res.json(preview);
           }
         });
       };
     })(this));
-    this.app.get("/:stream/waveform/:seg", (function(_this) {
+    this.app.get("/:stream/segments/:segment", (function(_this) {
       return function(req, res) {
         if (!req.stream.archiver) {
           return res.status(404).json({
@@ -105,8 +116,38 @@ module.exports = Server = (function() {
             error: "Stream not archived"
           });
         }
-        return req.stream.archiver.getWaveform(req.params.seg, function(err, waveform) {
-          if (err || !waveform) {
+        return req.stream.archiver.getSegment(req.params.segment, function(error, segment) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!segment) {
+            return res.status(404).json({
+              status: 404,
+              error: "Segment not found"
+            });
+          } else {
+            return res.json(segment);
+          }
+        });
+      };
+    })(this));
+    this.app.get("/:stream/waveform/:segment", (function(_this) {
+      return function(req, res) {
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
+        return req.stream.archiver.getWaveform(req.params.segment, function(error, waveform) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!waveform) {
             return res.status(404).json({
               status: 404,
               error: "Waveform not found"
@@ -136,5 +177,7 @@ module.exports = Server = (function() {
   return Server;
 
 })();
+
+module.exports = Server;
 
 //# sourceMappingURL=server.js.map

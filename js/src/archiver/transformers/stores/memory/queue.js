@@ -2,25 +2,26 @@ var QueueMemoryStoreTransformer, debug,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
-debug = require("debug")("sm:archiver:transformers:stores:memory:queue");
+debug = require("debug")("sm:archiver:transformers:memory:queue");
 
-module.exports = QueueMemoryStoreTransformer = (function(superClass) {
+QueueMemoryStoreTransformer = (function(superClass) {
   extend(QueueMemoryStoreTransformer, superClass);
 
-  function QueueMemoryStoreTransformer(memory, options) {
+  function QueueMemoryStoreTransformer(stream, memory, options) {
+    this.stream = stream;
     this.memory = memory;
     this.options = options;
     QueueMemoryStoreTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
   QueueMemoryStoreTransformer.prototype._transform = function(segment, encoding, callback) {
-    debug("Segment " + segment.id);
     if (this.memory.has(segment)) {
-      debug("Skipping " + segment.id);
+      debug("Skipping " + segment.id + " from " + this.stream.key);
     } else {
+      debug("Segment " + segment.id + " from " + this.stream.key);
       this.memory.enqueue(segment);
       this.push(segment);
     }
@@ -30,5 +31,7 @@ module.exports = QueueMemoryStoreTransformer = (function(superClass) {
   return QueueMemoryStoreTransformer;
 
 })(require("stream").Transform);
+
+module.exports = QueueMemoryStoreTransformer;
 
 //# sourceMappingURL=queue.js.map

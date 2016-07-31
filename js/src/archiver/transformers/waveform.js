@@ -8,38 +8,41 @@ PassThrough = require("stream").PassThrough;
 
 debug = require("debug")("sm:archiver:transformers:waveform");
 
-module.exports = WaveformTransformer = (function(superClass) {
+WaveformTransformer = (function(superClass) {
   extend(WaveformTransformer, superClass);
 
-  function WaveformTransformer(pps) {
+  function WaveformTransformer(stream, pps) {
+    this.stream = stream;
     this.pps = pps;
     WaveformTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
-  WaveformTransformer.prototype._transform = function(obj, encoding, cb) {
+  WaveformTransformer.prototype._transform = function(segment, encoding, callback) {
     var pt;
     pt = new PassThrough();
-    debug("Segment " + obj.id);
+    debug("Segment " + segment.id + " from " + this.stream.key);
     new waveform.Waveform(pt, {
       pixelsPerSecond: this.pps
     }, (function(_this) {
-      return function(err, wave) {
-        if (err) {
-          return cb(err);
+      return function(error, waveform) {
+        if (error) {
+          return callback(error);
         }
-        obj.waveform = wave.asJSON();
-        _this.push(obj);
-        return cb();
+        segment.waveform = waveform.asJSON();
+        _this.push(segment);
+        return callback();
       };
     })(this));
-    return pt.end(obj.audio);
+    return pt.end(segment.audio);
   };
 
   return WaveformTransformer;
 
 })(require("stream").Transform);
+
+module.exports = WaveformTransformer;
 
 //# sourceMappingURL=waveform.js.map

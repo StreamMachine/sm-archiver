@@ -10,7 +10,7 @@ moment = require("moment");
 
 debug = require("debug")("sm:archiver:stores:s3");
 
-module.exports = S3Store = (function() {
+S3Store = (function() {
   function S3Store(stream, options1) {
     this.stream = stream;
     this.options = options1;
@@ -18,7 +18,7 @@ module.exports = S3Store = (function() {
     P.promisifyAll(this);
     this.prefix = "sm-archiver/" + this.stream.key;
     this.format = this.stream.opts.format;
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
   S3Store.prototype.getAudioById = function(id, format) {
@@ -72,5 +72,7 @@ module.exports = S3Store = (function() {
   return S3Store;
 
 })();
+
+module.exports = S3Store;
 
 //# sourceMappingURL=s3.js.map

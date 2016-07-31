@@ -6,18 +6,19 @@ WaveformData = require("waveform-data");
 
 debug = require("debug")("sm:archiver:transformers:wavedata");
 
-module.exports = WavedataTransformer = (function(superClass) {
+WavedataTransformer = (function(superClass) {
   extend(WavedataTransformer, superClass);
 
-  function WavedataTransformer() {
+  function WavedataTransformer(stream) {
+    this.stream = stream;
     WavedataTransformer.__super__.constructor.call(this, {
       objectMode: true
     });
-    debug("Created");
+    debug("Created for " + this.stream.key);
   }
 
   WavedataTransformer.prototype._transform = function(segment, encoding, callback) {
-    debug("Segment " + segment.id);
+    debug("Segment " + segment.id + " (" + segment.waveform.length + ") from " + this.stream.key);
     segment.wavedata = WaveformData.create(segment.waveform);
     this.push(segment);
     return callback();
@@ -26,5 +27,7 @@ module.exports = WavedataTransformer = (function(superClass) {
   return WavedataTransformer;
 
 })(require("stream").Transform);
+
+module.exports = WavedataTransformer;
 
 //# sourceMappingURL=wavedata.js.map
