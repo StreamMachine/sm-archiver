@@ -54,7 +54,7 @@ module.exports = class ClipExporter
                         else "unknown"
                     "Connection":           "close"
                     "Content-Length":       content_length
-                    "Content-Disposition":  'attachment; filename="kpcc-clip.'+@stream.opts.format+'"'
+                    "Content-Disposition":  'attachment; filename="'+@stream.key+'-'+Date.now()+'.'+@stream.opts.format+'"'
 
                 stream = new ClipExporter.ChunkStream chunks
 

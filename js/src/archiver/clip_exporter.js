@@ -44,7 +44,7 @@ module.exports = ClipExporter = (function() {
             "Content-Type": _this.stream.opts.format === "mp3" ? "audio/mpeg" : _this.stream.opts.format === "aac" ? "audio/aacp" : "unknown",
             "Connection": "close",
             "Content-Length": content_length,
-            "Content-Disposition": 'attachment; filename="kpcc-clip.' + _this.stream.opts.format + '"'
+            "Content-Disposition": 'attachment; filename="' + _this.stream.key + '-' + Date.now() + '.' + _this.stream.opts.format + '"'
           });
           stream = new ClipExporter.ChunkStream(chunks);
           return stream.pipe(_this.opts.res);
