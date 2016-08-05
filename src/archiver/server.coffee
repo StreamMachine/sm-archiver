@@ -1,3 +1,4 @@
+cors = require "cors"
 moment = require "moment"
 express = require "express"
 compression = require "compression"
@@ -8,6 +9,8 @@ class Server
     constructor: (@core, @port, @log) ->
         @app = express()
         @app.set "x-powered-by", "StreamMachine Archiver"
+        @app.use cors()
+        @app.options "*", cors()
         @app.use (req, res, next) =>
             res.header("Access-Control-Allow-Origin", "*")
             res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")

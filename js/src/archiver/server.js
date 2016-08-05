@@ -1,4 +1,6 @@
-var ClipExporter, Server, compression, debug, express, moment;
+var ClipExporter, Server, compression, cors, debug, express, moment;
+
+cors = require("cors");
 
 moment = require("moment");
 
@@ -17,6 +19,8 @@ Server = (function() {
     this.log = log;
     this.app = express();
     this.app.set("x-powered-by", "StreamMachine Archiver");
+    this.app.use(cors());
+    this.app.options("*", cors());
     this.app.use((function(_this) {
       return function(req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
