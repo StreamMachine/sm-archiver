@@ -23,7 +23,7 @@ module.exports = ClipExporter = (function() {
     debug("Start/End offsets are " + start_offset + "/" + end_offset, start_time.toISOString(), end_time.toISOString());
     this.stream._rbuffer.range(start_offset, (start_offset - end_offset) + 1, (function(_this) {
       return function(err, chunks) {
-        var aF, trim_end, trim_start;
+        var aF, filename, trim_end, trim_start;
         if (err) {
           _this.opts.res.status(500).end(err);
           return false;
@@ -32,6 +32,7 @@ module.exports = ClipExporter = (function() {
         trim_start = Number(start_time) - Number(chunks[0].ts);
         trim_end = Number(chunks[chunks.length - 1].ts) + chunks[chunks.length - 1].duration - Number(end_time);
         debug("Start/end trims are " + trim_start + " / " + trim_end, chunks[0].ts.toISOString(), chunks[chunks.length - 1].ts.toISOString(), chunks[chunks.length - 1].duration);
+        filename = _this.stream.key + '-' + Date.now() + '.' + _this.stream.opts.format;
         aF = _.after(2, function() {
           var c, content_length, i, len, stream;
           debug("Chunk trimming complete.");
@@ -44,7 +45,8 @@ module.exports = ClipExporter = (function() {
             "Content-Type": _this.stream.opts.format === "mp3" ? "audio/mpeg" : _this.stream.opts.format === "aac" ? "audio/aacp" : "unknown",
             "Connection": "close",
             "Content-Length": content_length,
-            "Content-Disposition": 'attachment; filename="' + _this.stream.key + '-' + Date.now() + '.' + _this.stream.opts.format + '"'
+            "Content-Disposition": 'attachment; filename="' + filename + '"',
+            "X-Archiver-Filename": filename
           });
           stream = new ClipExporter.ChunkStream(chunks);
           return stream.pipe(_this.opts.res);

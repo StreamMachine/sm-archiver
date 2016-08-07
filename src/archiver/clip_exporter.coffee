@@ -37,7 +37,7 @@ module.exports = class ClipExporter
             trim_end = Number(chunks[chunks.length-1].ts) + chunks[chunks.length-1].duration - Number(end_time)
 
             debug "Start/end trims are #{ trim_start } / #{ trim_end }", chunks[0].ts.toISOString(), chunks[chunks.length-1].ts.toISOString(), chunks[chunks.length-1].duration
-
+            filename = @stream.key+'-'+Date.now()+'.'+@stream.opts.format
             aF = _.after 2, =>
                 debug "Chunk trimming complete."
                 # -- what's the total size? -- #
@@ -54,7 +54,8 @@ module.exports = class ClipExporter
                         else "unknown"
                     "Connection":           "close"
                     "Content-Length":       content_length
-                    "Content-Disposition":  'attachment; filename="'+@stream.key+'-'+Date.now()+'.'+@stream.opts.format+'"'
+                    "Content-Disposition":  'attachment; filename="'+filename+'"'
+                    "X-Archiver-Filename":  filename
 
                 stream = new ClipExporter.ChunkStream chunks
 

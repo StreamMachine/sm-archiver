@@ -9,7 +9,7 @@ class Server
     constructor: (@core, @port, @log) ->
         @app = express()
         @app.set "x-powered-by", "StreamMachine Archiver"
-        @app.use cors()
+        @app.use cors(exposedHeaders: ["X-Archiver-Preview-Length", "X-Archiver-Filename"])
         @app.options "*", cors()
         @app.use (req, res, next) =>
             res.header("Access-Control-Allow-Origin", "*")

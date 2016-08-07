@@ -19,7 +19,9 @@ Server = (function() {
     this.log = log;
     this.app = express();
     this.app.set("x-powered-by", "StreamMachine Archiver");
-    this.app.use(cors());
+    this.app.use(cors({
+      exposedHeaders: ["X-Archiver-Preview-Length", "X-Archiver-Filename"]
+    }));
     this.app.options("*", cors());
     this.app.use((function(_this) {
       return function(req, res, next) {
