@@ -22,7 +22,8 @@ segmentKeys = [
     "duration",
     "discontinuitySeq",
     "pts",
-    "preview"
+    "preview",
+    "comment"
 ]
 
 class StreamArchiver extends require("events").EventEmitter
@@ -191,10 +192,16 @@ class StreamArchiver extends require("events").EventEmitter
 
     #----------
 
+    getCommentFromMemory: (id, cb) ->
+        return cb() if !@stores.memory
+        cb null, @stores.memory.getComment(id)
+
+    #----------
+
     getCommentFromElasticsearch: (id, cb) ->
         return cb() if !@stores.elasticsearch
-        @stores.elasticsearch.getComment(id) \
-        .then((comment) -> return cb null, comment) \
+        @stores.elasticsearch.getSegment(id) \
+        .then((segment) -> return cb null, segment?.comment) \
         .catch(() -> cb())
 
     #----------
@@ -216,13 +223,13 @@ class StreamArchiver extends require("events").EventEmitter
 
     saveComment: (comment, cb) ->
         @saveCommentToMemory comment, (error, comment) =>
-            return cb error if error
+            return cb error, comment if error
             @saveCommentToElasticsearch comment, cb
 
     #----------
 
     saveCommentToMemory: (comment, cb) ->
-        return cb() if !@stores.memory
+        return cb null, comment if !@stores.memory
         @stores.memory.storeComment comment
         cb null, comment
 
@@ -231,7 +238,7 @@ class StreamArchiver extends require("events").EventEmitter
     saveCommentToElasticsearch: (comment, cb) ->
         return cb() if !@stores.elasticsearch
         @stores.elasticsearch.indexComment(comment) \
-        .then(() => cb(null, comment))
+        .then(() => cb null, comment)
         .catch cb
 
     #----------

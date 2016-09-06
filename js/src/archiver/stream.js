@@ -30,7 +30,7 @@ S3StoreTransformer = require("./transformers/stores/s3");
 
 debug = require("debug")("sm:archiver:stream");
 
-segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "preview"];
+segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "preview", "comment"];
 
 StreamArchiver = (function(superClass) {
   extend(StreamArchiver, superClass);
@@ -278,12 +278,19 @@ StreamArchiver = (function(superClass) {
     return this.getCommentFromElasticsearch(id, cb);
   };
 
+  StreamArchiver.prototype.getCommentFromMemory = function(id, cb) {
+    if (!this.stores.memory) {
+      return cb();
+    }
+    return cb(null, this.stores.memory.getComment(id));
+  };
+
   StreamArchiver.prototype.getCommentFromElasticsearch = function(id, cb) {
     if (!this.stores.elasticsearch) {
       return cb();
     }
-    return this.stores.elasticsearch.getComment(id).then(function(comment) {
-      return cb(null, comment);
+    return this.stores.elasticsearch.getSegment(id).then(function(segment) {
+      return cb(null, segment != null ? segment.comment : void 0);
     })["catch"](function() {
       return cb();
     });
@@ -315,7 +322,7 @@ StreamArchiver = (function(superClass) {
     return this.saveCommentToMemory(comment, (function(_this) {
       return function(error, comment) {
         if (error) {
-          return cb(error);
+          return cb(error, comment);
         }
         return _this.saveCommentToElasticsearch(comment, cb);
       };
@@ -324,7 +331,7 @@ StreamArchiver = (function(superClass) {
 
   StreamArchiver.prototype.saveCommentToMemory = function(comment, cb) {
     if (!this.stores.memory) {
-      return cb();
+      return cb(null, comment);
     }
     this.stores.memory.storeComment(comment);
     return cb(null, comment);

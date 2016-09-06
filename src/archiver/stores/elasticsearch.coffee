@@ -14,7 +14,8 @@ segmentKeys = [
     "duration",
     "discontinuitySeq",
     "pts",
-    "waveform"
+    "waveform",
+    "comment"
 ]
 
 class ElasticsearchStore
@@ -32,7 +33,7 @@ class ElasticsearchStore
     #----------
 
     indexComment: (comment) ->
-        @indexOne "comment", comment.id, comment
+        @updateOne "segment", comment.id, comment: comment
 
     #----------
 
@@ -44,13 +45,16 @@ class ElasticsearchStore
 
     #----------
 
-    getSegment: (id, fields) ->
-        @getOne "segment", id, fields
+    updateOne: (type, id, doc) ->
+        debug "Updating #{type} #{id}"
+        @update(index: @stream.key, type: type, id: id, body: doc: doc) \
+        .catch (error) =>
+            debug "UPDATE #{type} Error for #{@stream.key}/#{id}: #{error}"
 
     #----------
 
-    getComment: (id, fields) ->
-        @getOne "comment", id, fields
+    getSegment: (id, fields) ->
+        @getOne "segment", id, fields
 
     #----------
 
@@ -69,16 +73,16 @@ class ElasticsearchStore
     #----------
 
     getComments: (options) ->
-        @getMany "comment", options
+        @getMany "segment", options, "comment"
 
     #----------
 
-    getMany: (type, options) ->
+    getMany: (type, options, attribute) ->
         first = moment().subtract(@hours, 'hours').valueOf()
         last = moment().valueOf()
         from = @parseId options.from, first
         to = @parseId options.to, last
-        debug "Searching #{type} #{from} -> #{to} from #{@stream.key}"
+        debug "Searching #{attribute or type} #{from} -> #{to} from #{@stream.key}"
         @search(index: @stream.key, type: type, body: {
             size: @options.size,
             sort: "id",
@@ -91,9 +95,9 @@ class ElasticsearchStore
                 }
             }
         }) \
-        .then((result) => P.map(result.hits.hits, (hit) => hit._source)) \
+        .then((result) => P.map(result.hits.hits, (hit) => if attribute then hit._source?[attribute] else hit._source)) \
         .catch (error) =>
-            debug "SEARCH #{type} Error for #{@stream.key}: #{error}"
+            debug "SEARCH #{attribute or type} Error for #{@stream.key}: #{error}"
 
     #----------
 

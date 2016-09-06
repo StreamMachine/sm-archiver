@@ -12,7 +12,7 @@ debug = require("debug")("sm:archiver:stores:elasticsearch");
 
 R_TIMESTAMP = /^[1-9][0-9]*$/;
 
-segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "waveform"];
+segmentKeys = ["id", "ts", "end_ts", "ts_actual", "end_ts_actual", "data_length", "duration", "discontinuitySeq", "pts", "waveform", "comment"];
 
 ElasticsearchStore = (function() {
   function ElasticsearchStore(stream, options) {
@@ -28,7 +28,9 @@ ElasticsearchStore = (function() {
   };
 
   ElasticsearchStore.prototype.indexComment = function(comment) {
-    return this.indexOne("comment", comment.id, comment);
+    return this.updateOne("segment", comment.id, {
+      comment: comment
+    });
   };
 
   ElasticsearchStore.prototype.indexOne = function(type, id, body) {
@@ -45,12 +47,24 @@ ElasticsearchStore = (function() {
     })(this));
   };
 
-  ElasticsearchStore.prototype.getSegment = function(id, fields) {
-    return this.getOne("segment", id, fields);
+  ElasticsearchStore.prototype.updateOne = function(type, id, doc) {
+    debug("Updating " + type + " " + id);
+    return this.update({
+      index: this.stream.key,
+      type: type,
+      id: id,
+      body: {
+        doc: doc
+      }
+    })["catch"]((function(_this) {
+      return function(error) {
+        return debug("UPDATE " + type + " Error for " + _this.stream.key + "/" + id + ": " + error);
+      };
+    })(this));
   };
 
-  ElasticsearchStore.prototype.getComment = function(id, fields) {
-    return this.getOne("comment", id, fields);
+  ElasticsearchStore.prototype.getSegment = function(id, fields) {
+    return this.getOne("segment", id, fields);
   };
 
   ElasticsearchStore.prototype.getOne = function(type, id, fields) {
@@ -76,16 +90,16 @@ ElasticsearchStore = (function() {
   };
 
   ElasticsearchStore.prototype.getComments = function(options) {
-    return this.getMany("comment", options);
+    return this.getMany("segment", options, "comment");
   };
 
-  ElasticsearchStore.prototype.getMany = function(type, options) {
+  ElasticsearchStore.prototype.getMany = function(type, options, attribute) {
     var first, from, last, to;
     first = moment().subtract(this.hours, 'hours').valueOf();
     last = moment().valueOf();
     from = this.parseId(options.from, first);
     to = this.parseId(options.to, last);
-    debug("Searching " + type + " " + from + " -> " + to + " from " + this.stream.key);
+    debug("Searching " + (attribute || type) + " " + from + " -> " + to + " from " + this.stream.key);
     return this.search({
       index: this.stream.key,
       type: type,
@@ -104,12 +118,17 @@ ElasticsearchStore = (function() {
     }).then((function(_this) {
       return function(result) {
         return P.map(result.hits.hits, function(hit) {
-          return hit._source;
+          var ref;
+          if (attribute) {
+            return (ref = hit._source) != null ? ref[attribute] : void 0;
+          } else {
+            return hit._source;
+          }
         });
       };
     })(this))["catch"]((function(_this) {
       return function(error) {
-        return debug("SEARCH " + type + " Error for " + _this.stream.key + ": " + error);
+        return debug("SEARCH " + (attribute || type) + " Error for " + _this.stream.key + ": " + error);
       };
     })(this));
   };

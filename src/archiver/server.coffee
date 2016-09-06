@@ -86,17 +86,6 @@ class Server
                 else
                     res.json comment
 
-        @app.get "/:stream/comments/:comment", (req, res) =>
-            if !req.stream.archiver
-                return res.status(404).json status: 404, error: "Stream not archived"
-            req.stream.archiver.getComment req.params.comment, (error, comment) =>
-                if error
-                    res.status(500).json status: 500, error: error
-                else if not comment
-                    res.status(404).json status: 404, error: "Comment not found"
-                else
-                    res.json comment
-
         @app.get "/:stream/comments", (req, res) =>
             if !req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
@@ -108,6 +97,17 @@ class Server
                 else
                     res.set "X-Archiver-Comments-Length", comments.length
                     res.json comments
+
+        @app.get "/:stream/comments/:comment", (req, res) =>
+            if !req.stream.archiver
+                return res.status(404).json status: 404, error: "Stream not archived"
+            req.stream.archiver.getComment req.params.comment, (error, comment) =>
+                if error
+                    res.status(500).json status: 500, error: error
+                else if not comment
+                    res.status(404).json status: 404, error: "Comment not found"
+                else
+                    res.json comment
 
         @app.get "/:stream/export", (req,res) =>
             new ClipExporter req.stream, req:req, res:res

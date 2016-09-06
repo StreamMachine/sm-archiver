@@ -186,31 +186,6 @@ Server = (function() {
         });
       };
     })(this));
-    this.app.get("/:stream/comments/:comment", (function(_this) {
-      return function(req, res) {
-        if (!req.stream.archiver) {
-          return res.status(404).json({
-            status: 404,
-            error: "Stream not archived"
-          });
-        }
-        return req.stream.archiver.getComment(req.params.comment, function(error, comment) {
-          if (error) {
-            return res.status(500).json({
-              status: 500,
-              error: error
-            });
-          } else if (!comment) {
-            return res.status(404).json({
-              status: 404,
-              error: "Comment not found"
-            });
-          } else {
-            return res.json(comment);
-          }
-        });
-      };
-    })(this));
     this.app.get("/:stream/comments", (function(_this) {
       return function(req, res) {
         if (!req.stream.archiver) {
@@ -233,6 +208,31 @@ Server = (function() {
           } else {
             res.set("X-Archiver-Comments-Length", comments.length);
             return res.json(comments);
+          }
+        });
+      };
+    })(this));
+    this.app.get("/:stream/comments/:comment", (function(_this) {
+      return function(req, res) {
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
+        return req.stream.archiver.getComment(req.params.comment, function(error, comment) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!comment) {
+            return res.status(404).json({
+              status: 404,
+              error: "Comment not found"
+            });
+          } else {
+            return res.json(comment);
           }
         });
       };
