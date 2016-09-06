@@ -1,6 +1,7 @@
 cors = require "cors"
 moment = require "moment"
 express = require "express"
+bodyParser = require "body-parser"
 compression = require "compression"
 ClipExporter = require "./clip_exporter"
 debug = require("debug") "sm:archiver:server"
@@ -53,6 +54,7 @@ class Server
                     res.set "X-Archiver-Preview-Length", preview.length
                     res.json preview
 
+
         @app.get "/:stream/segments/:segment", (req, res) =>
             if !req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
@@ -74,6 +76,38 @@ class Server
                     res.status(404).json status: 404, error: "Waveform not found"
                 else
                     res.json waveform
+
+        @app.post "/:stream/comments", bodyParser.json(), (req, res) =>
+            if !req.stream.archiver
+                return res.status(404).json status: 404, error: "Stream not archived"
+            req.stream.archiver.saveComment req.body, (error, comment) =>
+                if error
+                    res.status(500).json status: 500, error: error
+                else
+                    res.json comment
+
+        @app.get "/:stream/comments/:comment", (req, res) =>
+            if !req.stream.archiver
+                return res.status(404).json status: 404, error: "Stream not archived"
+            req.stream.archiver.getComment req.params.comment, (error, comment) =>
+                if error
+                    res.status(500).json status: 500, error: error
+                else if not comment
+                    res.status(404).json status: 404, error: "Comment not found"
+                else
+                    res.json comment
+
+        @app.get "/:stream/comments", (req, res) =>
+            if !req.stream.archiver
+                return res.status(404).json status: 404, error: "Stream not archived"
+            req.stream.archiver.getComments req.query, (error, comments) =>
+                if error
+                    res.status(500).json status: 500, error: error
+                else if not comments
+                    res.status(404).json status: 404, error: "Comments not found"
+                else
+                    res.set "X-Archiver-Comments-Length", comments.length
+                    res.json comments
 
         @app.get "/:stream/export", (req,res) =>
             new ClipExporter req.stream, req:req, res:res

@@ -24,24 +24,40 @@ ElasticsearchStore = (function() {
   }
 
   ElasticsearchStore.prototype.indexSegment = function(segment) {
-    debug("Indexing " + segment.id + " from " + this.stream.key);
+    return this.indexOne("segment", segment.id, _.pick(segment, segmentKeys));
+  };
+
+  ElasticsearchStore.prototype.indexComment = function(comment) {
+    return this.indexOne("comment", comment.id, comment);
+  };
+
+  ElasticsearchStore.prototype.indexOne = function(type, id, body) {
+    debug("Indexing " + type + " " + id);
     return this.index({
       index: this.stream.key,
-      type: "segment",
-      id: segment.id,
-      body: _.pick(segment, segmentKeys)
+      type: type,
+      id: id,
+      body: body
     })["catch"]((function(_this) {
       return function(error) {
-        return debug("INDEX Error for " + _this.stream.key + "/" + segment.id + ": " + error);
+        return debug("INDEX " + type + " Error for " + _this.stream.key + "/" + id + ": " + error);
       };
     })(this));
   };
 
-  ElasticsearchStore.prototype.getSegmentById = function(id, fields) {
-    debug("Getting " + id + " from " + this.stream.key);
+  ElasticsearchStore.prototype.getSegment = function(id, fields) {
+    return this.getOne("segment", id, fields);
+  };
+
+  ElasticsearchStore.prototype.getComment = function(id, fields) {
+    return this.getOne("comment", id, fields);
+  };
+
+  ElasticsearchStore.prototype.getOne = function(type, id, fields) {
+    debug("Getting " + type + " " + id + " from " + this.stream.key);
     return this.get({
       index: this.stream.key,
-      type: "segment",
+      type: type,
       id: id,
       fields: fields
     }).then((function(_this) {
@@ -50,21 +66,29 @@ ElasticsearchStore = (function() {
       };
     })(this))["catch"]((function(_this) {
       return function(error) {
-        return debug("GET Error for " + _this.stream.key + "/" + id + ": " + error);
+        return debug("GET " + type + " Error for " + _this.stream.key + "/" + id + ": " + error);
       };
     })(this));
   };
 
   ElasticsearchStore.prototype.getSegments = function(options) {
+    return this.getMany("segment", options);
+  };
+
+  ElasticsearchStore.prototype.getComments = function(options) {
+    return this.getMany("comment", options);
+  };
+
+  ElasticsearchStore.prototype.getMany = function(type, options) {
     var first, from, last, to;
     first = moment().subtract(this.hours, 'hours').valueOf();
     last = moment().valueOf();
     from = this.parseId(options.from, first);
     to = this.parseId(options.to, last);
-    debug("Searching " + from + " -> " + to + " from " + this.stream.key);
+    debug("Searching " + type + " " + from + " -> " + to + " from " + this.stream.key);
     return this.search({
       index: this.stream.key,
-      type: "segment",
+      type: type,
       body: {
         size: this.options.size,
         sort: "id",
@@ -85,7 +109,7 @@ ElasticsearchStore = (function() {
       };
     })(this))["catch"]((function(_this) {
       return function(error) {
-        return debug("SEARCH Error for " + _this.stream.key + ": " + error);
+        return debug("SEARCH " + type + " Error for " + _this.stream.key + ": " + error);
       };
     })(this));
   };

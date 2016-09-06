@@ -27,29 +27,59 @@ class ElasticsearchStore
     #----------
 
     indexSegment: (segment) ->
-        debug "Indexing #{segment.id} from #{@stream.key}"
-        @index(index: @stream.key, type: "segment", id: segment.id, body: _.pick(segment, segmentKeys)) \
-            .catch (error) =>
-                debug "INDEX Error for #{@stream.key}/#{segment.id}: #{error}"
+        @indexOne "segment", segment.id, _.pick(segment, segmentKeys)
 
     #----------
 
-    getSegmentById: (id, fields) ->
-        debug "Getting #{id} from #{@stream.key}"
-        @get(index: @stream.key, type: "segment", id: id, fields: fields)
-            .then((result) => result._source ) \
-            .catch (error) =>
-                debug "GET Error for #{@stream.key}/#{id}: #{error}"
+    indexComment: (comment) ->
+        @indexOne "comment", comment.id, comment
+
+    #----------
+
+    indexOne: (type, id, body) ->
+        debug "Indexing #{type} #{id}"
+        @index(index: @stream.key, type: type, id: id, body: body) \
+        .catch (error) =>
+            debug "INDEX #{type} Error for #{@stream.key}/#{id}: #{error}"
+
+    #----------
+
+    getSegment: (id, fields) ->
+        @getOne "segment", id, fields
+
+    #----------
+
+    getComment: (id, fields) ->
+        @getOne "comment", id, fields
+
+    #----------
+
+    getOne: (type, id, fields) ->
+        debug "Getting #{type} #{id} from #{@stream.key}"
+        @get(index: @stream.key, type: type, id: id, fields: fields)
+        .then((result) => result._source ) \
+        .catch (error) =>
+            debug "GET #{type} Error for #{@stream.key}/#{id}: #{error}"
 
     #----------
 
     getSegments: (options) ->
+        @getMany "segment", options
+
+    #----------
+
+    getComments: (options) ->
+        @getMany "comment", options
+
+    #----------
+
+    getMany: (type, options) ->
         first = moment().subtract(@hours, 'hours').valueOf()
         last = moment().valueOf()
         from = @parseId options.from, first
         to = @parseId options.to, last
-        debug "Searching #{from} -> #{to} from #{@stream.key}"
-        @search(index: @stream.key, type: "segment", body: {
+        debug "Searching #{type} #{from} -> #{to} from #{@stream.key}"
+        @search(index: @stream.key, type: type, body: {
             size: @options.size,
             sort: "id",
             query: {
@@ -63,7 +93,7 @@ class ElasticsearchStore
         }) \
         .then((result) => P.map(result.hits.hits, (hit) => hit._source)) \
         .catch (error) =>
-            debug "SEARCH Error for #{@stream.key}: #{error}"
+            debug "SEARCH #{type} Error for #{@stream.key}: #{error}"
 
     #----------
 

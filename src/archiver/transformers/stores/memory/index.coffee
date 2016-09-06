@@ -9,7 +9,7 @@ class MemoryStoreTransformer extends require("stream").Transform
 
     _transform: (segment, encoding, callback) ->
         debug "Segment #{segment.id} from #{@stream.key}"
-        @memory.store segment
+        @memory.storeSegment segment
         @push segment
         callback()
 

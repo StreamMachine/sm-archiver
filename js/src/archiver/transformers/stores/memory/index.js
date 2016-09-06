@@ -19,7 +19,7 @@ MemoryStoreTransformer = (function(superClass) {
 
   MemoryStoreTransformer.prototype._transform = function(segment, encoding, callback) {
     debug("Segment " + segment.id + " from " + this.stream.key);
-    this.memory.store(segment);
+    this.memory.storeSegment(segment);
     this.push(segment);
     return callback();
   };

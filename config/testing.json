@@ -1,0 +1,31 @@
+{
+  "master": {
+    "master": "ws://c3ny1.mediainbox.net:8020?password=polkmn1!c3"
+  },
+  "streams": ["cadena3.mp3"],
+  "port": 9001,
+  "pixels_per_second": 20,
+  "preview_width": 1500,
+  "stores": {
+    "memory": {
+      "enabled": false,
+      "size": 1440
+    },
+    "elasticsearch": {
+      "enabled": true,
+      "size": 1440,
+      "region": "us-west-2",
+      "accessKeyId": "AKIAJTBSNSGWBC2AFLRQ",
+      "secretAccessKey": "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",
+      "host": "search-sm-archiver-kchzxkq7gs4qniuvx3w367hwnm.us-west-2.es.amazonaws.com"
+    },
+    "s3": {
+      "enabled": false,
+      "accessKeyId": "AKIAJTBSNSGWBC2AFLRQ",
+      "secretAccessKey": "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",
+      "params": {
+        "Bucket": "martindido-testing"
+      }
+    }
+  }
+}

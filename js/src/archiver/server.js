@@ -1,10 +1,12 @@
-var ClipExporter, Server, compression, cors, debug, express, moment;
+var ClipExporter, Server, bodyParser, compression, cors, debug, express, moment;
 
 cors = require("cors");
 
 moment = require("moment");
 
 express = require("express");
+
+bodyParser = require("body-parser");
 
 compression = require("compression");
 
@@ -160,6 +162,77 @@ Server = (function() {
             });
           } else {
             return res.json(waveform);
+          }
+        });
+      };
+    })(this));
+    this.app.post("/:stream/comments", bodyParser.json(), (function(_this) {
+      return function(req, res) {
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
+        return req.stream.archiver.saveComment(req.body, function(error, comment) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else {
+            return res.json(comment);
+          }
+        });
+      };
+    })(this));
+    this.app.get("/:stream/comments/:comment", (function(_this) {
+      return function(req, res) {
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
+        return req.stream.archiver.getComment(req.params.comment, function(error, comment) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!comment) {
+            return res.status(404).json({
+              status: 404,
+              error: "Comment not found"
+            });
+          } else {
+            return res.json(comment);
+          }
+        });
+      };
+    })(this));
+    this.app.get("/:stream/comments", (function(_this) {
+      return function(req, res) {
+        if (!req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
+        return req.stream.archiver.getComments(req.query, function(error, comments) {
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!comments) {
+            return res.status(404).json({
+              status: 404,
+              error: "Comments not found"
+            });
+          } else {
+            res.set("X-Archiver-Comments-Length", comments.length);
+            return res.json(comments);
           }
         });
       };
