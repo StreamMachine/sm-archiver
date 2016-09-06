@@ -45,7 +45,7 @@ MemoryStore = (function() {
     })) {
       return;
     }
-    return this.segments[segment.id].comment = comment;
+    return this.segments[comment.id].comment = comment;
   };
 
   MemoryStore.prototype.expire = function() {

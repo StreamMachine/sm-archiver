@@ -37,7 +37,7 @@ class MemoryStore
     storeComment: (comment) ->
         debug "Storing comment #{comment.id} from #{@stream.key}"
         return if not @has id: comment.id
-        @segments[segment.id].comment = comment
+        @segments[comment.id].comment = comment
 
     #----------
 
