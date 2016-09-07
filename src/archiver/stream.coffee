@@ -171,12 +171,6 @@ class StreamArchiver extends require("events").EventEmitter
 
     #----------
 
-    getWaveformFromMemory: (id, cb) ->
-        return cb() if !@stores.memory
-        cb null, @stores.memory.getComment(id)
-
-    #----------
-
     getAudioFromS3: (id, format, cb) ->
         return cb() if !@stores.s3
         @stores.s3.getAudioById(id, format) \
