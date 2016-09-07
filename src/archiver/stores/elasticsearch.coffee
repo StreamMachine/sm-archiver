@@ -14,7 +14,8 @@ segmentKeys = [
     "duration",
     "discontinuitySeq",
     "pts",
-    "waveform"
+    "waveform",
+    "comment"
 ]
 
 class ElasticsearchStore
@@ -27,29 +28,62 @@ class ElasticsearchStore
     #----------
 
     indexSegment: (segment) ->
-        debug "Indexing #{segment.id} from #{@stream.key}"
-        @index(index: @stream.key, type: "segment", id: segment.id, body: _.pick(segment, segmentKeys)) \
-            .catch (error) =>
-                debug "INDEX Error for #{@stream.key}/#{segment.id}: #{error}"
+        @indexOne "segment", segment.id, _.pick(segment, segmentKeys)
 
     #----------
 
-    getSegmentById: (id, fields) ->
-        debug "Getting #{id} from #{@stream.key}"
-        @get(index: @stream.key, type: "segment", id: id, fields: fields)
-            .then((result) => result._source ) \
-            .catch (error) =>
-                debug "GET Error for #{@stream.key}/#{id}: #{error}"
+    indexComment: (comment) ->
+        @updateOne "segment", comment.id, comment: comment
+
+    #----------
+
+    indexOne: (type, id, body) ->
+        debug "Indexing #{type} #{id}"
+        @index(index: @stream.key, type: type, id: id, body: body) \
+        .catch (error) =>
+            debug "INDEX #{type} Error for #{@stream.key}/#{id}: #{error}"
+
+    #----------
+
+    updateOne: (type, id, doc) ->
+        debug "Updating #{type} #{id}"
+        @update(index: @stream.key, type: type, id: id, body: doc: doc) \
+        .catch (error) =>
+            debug "UPDATE #{type} Error for #{@stream.key}/#{id}: #{error}"
+
+    #----------
+
+    getSegment: (id, fields) ->
+        @getOne "segment", id, fields
+
+    #----------
+
+    getOne: (type, id, fields) ->
+        debug "Getting #{type} #{id} from #{@stream.key}"
+        @get(index: @stream.key, type: type, id: id, fields: fields)
+        .then((result) => result._source ) \
+        .catch (error) =>
+            debug "GET #{type} Error for #{@stream.key}/#{id}: #{error}"
 
     #----------
 
     getSegments: (options) ->
+        @getMany "segment", options
+
+    #----------
+
+    getComments: (options) ->
+        @getMany "segment", options, "comment"
+
+    #----------
+
+    getMany: (type, options, attribute) ->
         first = moment().subtract(@hours, 'hours').valueOf()
         last = moment().valueOf()
         from = @parseId options.from, first
         to = @parseId options.to, last
-        debug "Searching #{from} -> #{to} from #{@stream.key}"
-        @search(index: @stream.key, type: "segment", body: {
+        debug "Searching #{attribute or type} #{from} -> #{to} from #{@stream.key}"
+        @search(index: @stream.key, type: type, body: {
             size: @options.size,
             sort: "id",
             query: {
@@ -61,9 +95,9 @@ class ElasticsearchStore
                 }
             }
         }) \
-        .then((result) => P.map(result.hits.hits, (hit) => hit._source)) \
+        .then((result) => P.map(result.hits.hits, (hit) => if attribute then hit._source?[attribute] else hit._source)) \
         .catch (error) =>
-            debug "SEARCH Error for #{@stream.key}: #{error}"
+            debug "SEARCH #{attribute or type} Error for #{@stream.key}: #{error}"
 
     #----------
 

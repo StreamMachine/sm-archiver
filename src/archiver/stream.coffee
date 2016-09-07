@@ -22,7 +22,8 @@ segmentKeys = [
     "duration",
     "discontinuitySeq",
     "pts",
-    "preview"
+    "preview",
+    "comment"
 ]
 
 class StreamArchiver extends require("events").EventEmitter
@@ -85,7 +86,7 @@ class StreamArchiver extends require("events").EventEmitter
 
     getPreviewFromMemory: (options, cb) ->
         return cb() if !@stores.memory
-        @generatePreview @stores.memory.get(options),cb
+        @generatePreview @stores.memory.getSegments(options),cb
 
     #----------
 
@@ -124,13 +125,13 @@ class StreamArchiver extends require("events").EventEmitter
 
     getSegmentFromMemory: (id, cb) ->
         return cb() if !@stores.memory
-        cb null, @stores.memory.getById(id)
+        cb null, @stores.memory.getSegment(id)
 
     #----------
 
     getSegmentFromElasticsearch: (id, cb) ->
         return cb() if !@stores.elasticsearch
-        @stores.elasticsearch.getSegmentById(id) \
+        @stores.elasticsearch.getSegment(id) \
         .then((segment) -> return cb null, segment) \
         .catch(() -> cb())
 
@@ -145,13 +146,13 @@ class StreamArchiver extends require("events").EventEmitter
 
     getWaveformFromMemory: (id, cb) ->
         return cb() if !@stores.memory
-        cb null, @stores.memory.getById(id)?.waveform
+        cb null, @stores.memory.getWaveform(id)
 
     #----------
 
     getWaveformFromElasticsearch: (id, cb) ->
         return cb() if !@stores.elasticsearch
-        @stores.elasticsearch.getSegmentById(id) \
+        @stores.elasticsearch.getSegment(id) \
             .then((segment) -> return cb null, segment?.waveform) \
             .catch(() -> cb())
 
@@ -166,7 +167,7 @@ class StreamArchiver extends require("events").EventEmitter
 
     getAudioFromMemory: (id, format, cb) ->
         return cb() if !@stores.memory
-        cb null, @stores.memory.getById(id)?.audio
+        cb null, @stores.memory.getAudio(id)
 
     #----------
 
@@ -175,6 +176,64 @@ class StreamArchiver extends require("events").EventEmitter
         @stores.s3.getAudioById(id, format) \
             .then((audio) -> return cb null, audio) \
             .catch(() -> cb())
+
+    #----------
+
+    getComment: (id, cb) ->
+        @getCommentFromMemory id, (error, comment) =>
+            return cb error, comment if error or comment
+        @getCommentFromElasticsearch id, cb
+
+    #----------
+
+    getCommentFromMemory: (id, cb) ->
+        return cb() if !@stores.memory
+        cb null, @stores.memory.getComment(id)
+
+    #----------
+
+    getCommentFromElasticsearch: (id, cb) ->
+        return cb() if !@stores.elasticsearch
+        @stores.elasticsearch.getSegment(id) \
+        .then((segment) -> return cb null, segment?.comment) \
+        .catch(() -> cb())
+
+    #----------
+
+    getComments: (options, cb) ->
+        @getCommentsFromElasticsearch options, (error, comments) =>
+            return cb error, comments if error or (comments and comments.length)
+            return cb null, []
+
+    #----------
+
+    getCommentsFromElasticsearch: (options, cb) ->
+        return cb() if !@stores.elasticsearch
+        @stores.elasticsearch.getComments(options) \
+        .then((comments) => cb null, comments)
+        .catch cb
+
+    #----------
+
+    saveComment: (comment, cb) ->
+        @saveCommentToMemory comment, (error, comment) =>
+            return cb error, comment if error
+            @saveCommentToElasticsearch comment, cb
+
+    #----------
+
+    saveCommentToMemory: (comment, cb) ->
+        return cb null, comment if !@stores.memory
+        @stores.memory.storeComment comment
+        cb null, comment
+
+    #----------
+
+    saveCommentToElasticsearch: (comment, cb) ->
+        return cb() if !@stores.elasticsearch
+        @stores.elasticsearch.indexComment(comment) \
+        .then(() => cb null, comment)
+        .catch cb
 
     #----------
 
