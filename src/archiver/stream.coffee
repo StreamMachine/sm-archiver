@@ -230,7 +230,7 @@ class StreamArchiver extends require("events").EventEmitter
     #----------
 
     saveCommentToElasticsearch: (comment, cb) ->
-        return cb() if !@stores.elasticsearch
+        return cb null, comment if !@stores.elasticsearch
         @stores.elasticsearch.indexComment(comment) \
         .then(() => cb null, comment)
         .catch cb
