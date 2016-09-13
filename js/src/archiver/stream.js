@@ -249,13 +249,6 @@ StreamArchiver = (function(superClass) {
     return cb(null, this.stores.memory.getAudio(id));
   };
 
-  StreamArchiver.prototype.getWaveformFromMemory = function(id, cb) {
-    if (!this.stores.memory) {
-      return cb();
-    }
-    return cb(null, this.stores.memory.getComment(id));
-  };
-
   StreamArchiver.prototype.getAudioFromS3 = function(id, format, cb) {
     if (!this.stores.s3) {
       return cb();
@@ -339,7 +332,7 @@ StreamArchiver = (function(superClass) {
 
   StreamArchiver.prototype.saveCommentToElasticsearch = function(comment, cb) {
     if (!this.stores.elasticsearch) {
-      return cb();
+      return cb(null, comment);
     }
     return this.stores.elasticsearch.indexComment(comment).then((function(_this) {
       return function() {
