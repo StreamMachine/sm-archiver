@@ -57,7 +57,7 @@ Archiver = (function(superClass) {
         return results;
       };
     })(this));
-    this.server = new Server(this, this.options.port, this.log.child({
+    this.server = new Server(this, this.options, this.log.child({
       component: "server"
     }));
     debug("Created");

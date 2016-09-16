@@ -7,7 +7,7 @@ ClipExporter = require "./clip_exporter"
 debug = require("debug") "sm:archiver:server"
 
 class Server
-    constructor: (@core, @port, @log) ->
+    constructor: (@core, @options, @log) ->
         @app = express()
         @app.set "x-powered-by", "StreamMachine Archiver"
         @app.use cors(exposedHeaders: ["X-Archiver-Preview-Length", "X-Archiver-Filename"])
@@ -25,10 +25,24 @@ class Server
                 res.status(404).end "Invalid stream.\n"
 
         @app.get "/:stream.m3u8", compression(filter: -> true), (req, res) =>
-            new @core.Outputs.live_streaming.Index req.stream, req: req, res: res
+            if @options.outputs?.live?.enabled and not req.query.from and not req.query.to
+                return new @core.Outputs.live_streaming.Index req.stream, req: req, res: res
+            if not @options.outputs?.hls?.enabled or not req.stream.archiver
+                return res.status(404).json status: 404, error: "Stream not archived"
+            req.stream.archiver.getHls req.query, (error, hls) =>
+                if error
+                    res.status(500).json status: 500, error: error
+                else if not hls or not hls.length
+                    res.status(404).json status: 404, error: "Hls not found"
+                else
+                    hlsString = hls.toString()
+                    res.type "application/vnd.apple.mpegurl"
+                    res.set "Content-Length", hlsString.length
+                    res.set "X-Archiver-Hls-Length", hls.length
+                    res.send hlsString
 
         @app.get "/:stream/ts/:segment.(:format)", (req, res) =>
-            if !req.stream.archiver
+            if not req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
             req.stream.archiver.getAudio req.params.segment, req.params.format, (error, audio) =>
                 if error
@@ -43,7 +57,7 @@ class Server
             res.json format: req.stream.opts.format, codec: req.stream.opts.codec, archived: req.stream.archiver?
 
         @app.get "/:stream/preview", (req, res) =>
-            if !req.stream.archiver
+            if not req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
             req.stream.archiver.getPreview req.query, (error, preview) =>
                 if error
@@ -56,7 +70,7 @@ class Server
 
 
         @app.get "/:stream/segments/:segment", (req, res) =>
-            if !req.stream.archiver
+            if not req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
             req.stream.archiver.getSegment req.params.segment, (error, segment) =>
                 if error
@@ -67,7 +81,7 @@ class Server
                     res.json segment
 
         @app.get "/:stream/waveform/:segment", (req, res) =>
-            if !req.stream.archiver
+            if not req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
             req.stream.archiver.getWaveform req.params.segment, (error, waveform) =>
                 if error
@@ -78,7 +92,7 @@ class Server
                     res.json waveform
 
         @app.post "/:stream/comments", bodyParser.json(), (req, res) =>
-            if !req.stream.archiver
+            if not req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
             req.stream.archiver.saveComment req.body, (error, comment) =>
                 if error
@@ -87,7 +101,7 @@ class Server
                     res.json comment
 
         @app.get "/:stream/comments", (req, res) =>
-            if !req.stream.archiver
+            if not req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
             req.stream.archiver.getComments req.query, (error, comments) =>
                 if error
@@ -99,7 +113,7 @@ class Server
                     res.json comments
 
         @app.get "/:stream/comments/:comment", (req, res) =>
-            if !req.stream.archiver
+            if not req.stream.archiver
                 return res.status(404).json status: 404, error: "Stream not archived"
             req.stream.archiver.getComment req.params.comment, (error, comment) =>
                 if error
@@ -113,8 +127,8 @@ class Server
             new ClipExporter req.stream, req:req, res:res
             #new @core.Outputs.pumper req.stream, req:req, res:res
 
-        @_server = @app.listen @port,() =>
-            debug "Listing on port #{@port}"
+        @_server = @app.listen @options.port,() =>
+            debug "Listing on port #{@options.port}"
 
         debug "Created"
 
