@@ -11,6 +11,7 @@ ElasticsearchStore = require "./stores/elasticsearch"
 ElasticsearchStoreTransformer = require "./transformers/stores/elasticsearch"
 S3Store = require "./stores/s3"
 S3StoreTransformer = require "./transformers/stores/s3"
+HlsOutput = require "./outputs/hls"
 debug = require("debug") "sm:archiver:stream"
 segmentKeys = [
     "id",
@@ -75,43 +76,26 @@ class StreamArchiver extends require("events").EventEmitter
 
     #----------
 
-    getPreview: (options, cb) ->
-        @getPreviewFromMemory options, (error, preview) =>
-            return cb error, preview if error or (preview and preview.length)
-            @getPreviewFromElasticsearch options, (error, preview) =>
-                return cb error, preview if error or (preview and preview.length)
+    getSegments: (options, cb) ->
+        @getSegmentsFromMemory options, (error, segments) =>
+            return cb error, segments if error or (segments and segments.length)
+            @getSegmentsFromElasticsearch options, (error, segments) =>
+                return cb error, segments if error or (segments and segments.length)
                 return cb null, []
 
     #----------
 
-    getPreviewFromMemory: (options, cb) ->
+    getSegmentsFromMemory: (options, cb) ->
         return cb() if !@stores.memory
-        @generatePreview @stores.memory.getSegments(options),cb
+        cb null, @stores.memory.getSegments(options)
 
     #----------
 
-    getPreviewFromElasticsearch: (options, cb) ->
+    getSegmentsFromElasticsearch: (options, cb) ->
         return cb() if !@stores.elasticsearch
         @stores.elasticsearch.getSegments(options) \
-            .catch(() -> [])
-            .then((segments) => @generatePreview segments, cb)
-
-    #----------
-
-    generatePreview: (segments, cb) ->
-        preview = []
-        return cb(null, preview) if not segments.length
-        wavedataTransformer = new WavedataTransformer @stream
-        previewTransformer = new PreviewTransformer @stream, @options.preview_width,segments.length
-        wavedataTransformer.pipe previewTransformer
-        previewTransformer.on "readable", =>
-            while segment = previewTransformer.read()
-                preview.push _.pick(segment, segmentKeys)
-        previewTransformer.on "end", =>
-            cb null, preview
-        _.each segments, (segment) =>
-            wavedataTransformer.write segment
-        previewTransformer.end()
+        .catch(() -> [])
+        .then((segments) => cb null, segments)
 
     #----------
 
@@ -134,6 +118,32 @@ class StreamArchiver extends require("events").EventEmitter
         @stores.elasticsearch.getSegment(id) \
         .then((segment) -> return cb null, segment) \
         .catch(() -> cb())
+
+    #----------
+
+    getPreview: (options, cb) ->
+        @getSegments options, (error, segments) =>
+            return cb error, segments if error or (segments and segments.length)
+            @generatePreview segments, (error, preview) =>
+                return cb error, preview if error or (preview and preview.length)
+                return cb null, []
+
+    #----------
+
+    generatePreview: (segments, cb) ->
+        preview = []
+        return cb(null, preview) if not segments.length
+        wavedataTransformer = new WavedataTransformer @stream
+        previewTransformer = new PreviewTransformer @stream, @options.preview_width,segments.length
+        wavedataTransformer.pipe previewTransformer
+        previewTransformer.on "readable", =>
+            while segment = previewTransformer.read()
+                preview.push _.pick(segment, segmentKeys)
+        previewTransformer.on "end", =>
+            cb null, preview
+        _.each segments, (segment) =>
+            wavedataTransformer.write segment
+        previewTransformer.end()
 
     #----------
 
@@ -234,6 +244,19 @@ class StreamArchiver extends require("events").EventEmitter
         @stores.elasticsearch.indexComment(comment) \
         .then(() => cb null, comment)
         .catch cb
+
+    #----------
+
+    getHls: (options, cb) ->
+        @getSegments options, (error, segments) =>
+            return cb error, segments if error or not segments or not segments.length
+            @generateHls segments, cb
+
+    #----------
+
+    generateHls: (segments, cb) ->
+        hls = new HlsOutput @stream
+        cb null, hls.append segments
 
     #----------
 

@@ -15,9 +15,9 @@ ClipExporter = require("./clip_exporter");
 debug = require("debug")("sm:archiver:server");
 
 Server = (function() {
-  function Server(core, port, log) {
+  function Server(core, options, log) {
     this.core = core;
-    this.port = port;
+    this.options = options;
     this.log = log;
     this.app = express();
     this.app.set("x-powered-by", "StreamMachine Archiver");
@@ -49,9 +49,38 @@ Server = (function() {
       }
     }), (function(_this) {
       return function(req, res) {
-        return new _this.core.Outputs.live_streaming.Index(req.stream, {
-          req: req,
-          res: res
+        var ref, ref1, ref2, ref3;
+        if (((ref = _this.options.outputs) != null ? (ref1 = ref.live) != null ? ref1.enabled : void 0 : void 0) && !req.query.from && !req.query.to) {
+          return new _this.core.Outputs.live_streaming.Index(req.stream, {
+            req: req,
+            res: res
+          });
+        }
+        if (!((ref2 = _this.options.outputs) != null ? (ref3 = ref2.hls) != null ? ref3.enabled : void 0 : void 0) || !req.stream.archiver) {
+          return res.status(404).json({
+            status: 404,
+            error: "Stream not archived"
+          });
+        }
+        return req.stream.archiver.getHls(req.query, function(error, hls) {
+          var hlsString;
+          if (error) {
+            return res.status(500).json({
+              status: 500,
+              error: error
+            });
+          } else if (!hls || !hls.length) {
+            return res.status(404).json({
+              status: 404,
+              error: "Hls not found"
+            });
+          } else {
+            hlsString = hls.toString();
+            res.type("application/vnd.apple.mpegurl");
+            res.set("Content-Length", hlsString.length);
+            res.set("X-Archiver-Hls-Length", hls.length);
+            return res.send(hlsString);
+          }
         });
       };
     })(this));
@@ -245,9 +274,9 @@ Server = (function() {
         });
       };
     })(this));
-    this._server = this.app.listen(this.port, (function(_this) {
+    this._server = this.app.listen(this.options.port, (function(_this) {
       return function() {
-        return debug("Listing on port " + _this.port);
+        return debug("Listing on port " + _this.options.port);
       };
     })(this));
     debug("Created");

@@ -28,7 +28,7 @@ class Archiver extends require "streammachine/js/src/streammachine/slave"
                     debug "Creating StreamArchiver for #{key}"
                     stream.archiver = new StreamArchiver stream, @options
 
-        @server = new Server @, @options.port, @log.child(component:"server")
+        @server = new Server @, @options, @log.child(component:"server")
         debug "Created"
 
     #----------
