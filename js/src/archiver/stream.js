@@ -175,7 +175,7 @@ StreamArchiver = (function(superClass) {
   StreamArchiver.prototype.getPreview = function(options, cb) {
     return this.getSegments(options, (function(_this) {
       return function(error, segments) {
-        if (error || (segments && segments.length)) {
+        if (error || !segments || !segments.length) {
           return cb(error, segments);
         }
         return _this.generatePreview(segments, function(error, preview) {

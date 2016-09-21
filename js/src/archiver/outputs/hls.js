@@ -35,7 +35,7 @@ HlsOutput = (function() {
       return this.length++;
     }, this);
     this.endlist();
-    debug(this.toString());
+    debug("Current length for " + this.stream.key + " is " + this.length);
     return this;
   };
 

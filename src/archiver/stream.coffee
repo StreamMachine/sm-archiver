@@ -123,7 +123,7 @@ class StreamArchiver extends require("events").EventEmitter
 
     getPreview: (options, cb) ->
         @getSegments options, (error, segments) =>
-            return cb error, segments if error or (segments and segments.length)
+            return cb error, segments if error or not segments or not segments.length
             @generatePreview segments, (error, preview) =>
                 return cb error, preview if error or (preview and preview.length)
                 return cb null, []
