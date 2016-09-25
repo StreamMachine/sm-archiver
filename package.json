@@ -10,7 +10,7 @@
   },
   "main": "index.js",
   "dependencies": {
-    "aws-sdk": "2.6.3",
+    "aws-sdk": "2.6.4",
     "bluebird": "3.4.6",
     "body-parser": "1.15.2",
     "compression": "1.6.2",
@@ -19,16 +19,16 @@
     "elasticsearch": "11.0.1",
     "express": "4.14.0",
     "m3u": "0.0.2",
-    "moment": "2.15.0",
+    "moment": "2.15.1",
     "nconf": "0.8.4",
     "sm-waveform": "0.1.0",
     "streammachine": "0.7.1",
     "temp": "0.8.3",
     "underscore": "1.8.3",
-    "waveform-data": "1.5.2"
+    "waveform-data": "1.5.3"
   },
   "devDependencies": {
-    "coffee-script": "1.10.0",
+    "coffee-script": "1.11.0",
     "grunt": "1.0.1",
     "grunt-cli": "1.2.0",
     "grunt-contrib-coffee": "1.0.0",
