@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "monitor.js",
+  "sourceRoot": "../../../../src/archiver/monitors/",
+  "sources": [
+    "monitor.coffee"
+  ],
+  "names": [],
+  "mappings": "AAAA,IAAA;;AAAA,QAAA,GAAW;;AAEL;EACW,iBAAC,OAAD;IACT,IAAC,CAAA,QAAD,GAAY,OAAO,CAAC;IACpB,IAAC,CAAA,MAAD,GAAU,OAAO,CAAC;IAClB,WAAA,CAAY,CAAA,SAAA,KAAA;aAAA,SAAA;eACR,KAAC,CAAA,KAAD,CAAA;MADQ;IAAA,CAAA,CAAA,CAAA,IAAA,CAAZ,EAEE,QAFF;EAHS;;oBAOb,KAAA,GAAO,SAAA,GAAA;;;;;;AAEX,MAAM,CAAC,OAAP,GAAiB"
+}

@@ -1,10 +1,12 @@
-var ClipExporter, Server, bodyParser, compression, cors, debug, express, moment;
+var ClipExporter, Server, bodyParser, compression, cors, debug, express, moment, onHeaders;
 
 cors = require("cors");
 
 moment = require("moment");
 
 express = require("express");
+
+onHeaders = require("on-headers");
 
 bodyParser = require("body-parser");
 
@@ -25,6 +27,15 @@ Server = (function() {
       exposedHeaders: ["X-Archiver-Preview-Length", "X-Archiver-Filename"]
     }));
     this.app.options("*", cors());
+    this.app.use((function(_this) {
+      return function(req, res, next) {
+        req.startTime = process.hrtime();
+        onHeaders(res, function() {
+          return this.startTime = process.hrtime();
+        });
+        return next();
+      };
+    })(this));
     this.app.use((function(_this) {
       return function(req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");

@@ -1,0 +1,66 @@
+var DAY, DAY_IN_HOURS, HALF_MINUTE, HOUR, HOUR_IN_MINUTES, MILLISECOND, MINUTE, MINUTE_IN_SECONDS, MONTH, MONTH_IN_DAYS, NANOSECOND_IN_MILLISECONDS, SECOND, SECOND_IN_NANOSECONDS, YEAR, YEAR_IN_MONTHS, tupleDiff, tupleToMilliseconds, tupleToNanoseconds;
+
+NANOSECOND_IN_MILLISECONDS = 1e-6;
+
+MILLISECOND = 1;
+
+SECOND = 1e3;
+
+SECOND_IN_NANOSECONDS = 1e9;
+
+MINUTE_IN_SECONDS = 60;
+
+MINUTE = MINUTE_IN_SECONDS * SECOND;
+
+HALF_MINUTE = MINUTE / 2;
+
+HOUR_IN_MINUTES = 60;
+
+HOUR = HOUR_IN_MINUTES * MINUTE;
+
+DAY_IN_HOURS = 24;
+
+DAY = DAY_IN_HOURS * HOUR;
+
+MONTH_IN_DAYS = 30;
+
+MONTH = MONTH_IN_DAYS * DAY;
+
+YEAR_IN_MONTHS = 12;
+
+YEAR = YEAR_IN_MONTHS * MONTH;
+
+tupleToNanoseconds = function(tuple) {
+  return tuple[0] * SECOND_IN_NANOSECONDS + tuple[1];
+};
+
+tupleToMilliseconds = function(tuple) {
+  return tuple[0] * SECOND + tuple[1] * NANOSECOND_IN_MILLISECONDS;
+};
+
+tupleDiff = function(start, end) {
+  return [end[0] - start[0], end[1] - start[1]];
+};
+
+module.exports = {
+  NANOSECOND_IN_MILLISECONDS: NANOSECOND_IN_MILLISECONDS,
+  MILLISECOND: MILLISECOND,
+  SECOND: SECOND,
+  SECOND_IN_NANOSECONDS: SECOND_IN_NANOSECONDS,
+  MINUTE: MINUTE,
+  MINUTE_IN_SECONDS: MINUTE_IN_SECONDS,
+  HALF_MINUTE: HALF_MINUTE,
+  HOUR: HOUR,
+  HOUR_IN_MINUTES: HOUR_IN_MINUTES,
+  DAY: DAY,
+  DAY_IN_HOURS: DAY_IN_HOURS,
+  MONTH: MONTH,
+  MONTH_IN_DAYS: MONTH_IN_DAYS,
+  YEAR: YEAR,
+  YEAR_IN_MONTHS: YEAR_IN_MONTHS,
+  tupleToNanoseconds: tupleToNanoseconds,
+  tupleToMilliseconds: tupleToMilliseconds,
+  tupleDiff: tupleDiff
+};
+
+//# sourceMappingURL=time.js.map

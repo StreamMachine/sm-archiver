@@ -11,8 +11,14 @@ module.exports = (grunt) ->
                 src: ["src/**/*.coffee"]
                 dest: 'js/'
                 ext: ".js"
+        copy:
+            v8:
+                expand: true,
+                cwd: "src/archiver/monitors/v8/",
+                src: ["build/**/*"],
+                dest: "js/src/archiver/monitors/v8/"
 
     grunt.loadNpmTasks 'grunt-contrib-coffee'
     grunt.loadNpmTasks 'grunt-contrib-copy'
 
-    grunt.registerTask 'default', ['coffee']
+    grunt.registerTask 'default', ['coffee', 'copy']

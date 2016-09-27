@@ -2,6 +2,7 @@ SlaveIO = require "streammachine/js/src/streammachine/slave/slave_io"
 Logger = require "streammachine/js/src/streammachine/logger"
 StreamArchiver = require "./stream"
 Server = require "./server"
+Monitors = require "./monitors"
 debug = require("debug") "sm:archiver"
 
 class Archiver extends require "streammachine/js/src/streammachine/slave"
@@ -29,6 +30,7 @@ class Archiver extends require "streammachine/js/src/streammachine/slave"
                     stream.archiver = new StreamArchiver stream, @options
 
         @server = new Server @, @options, @log.child(component:"server")
+        @monitors = new Monitors @, @server, @options
         debug "Created"
 
     #----------
