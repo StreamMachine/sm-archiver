@@ -11,16 +11,21 @@
   "main": "index.js",
   "dependencies": {
     "aws-sdk": "2.6.4",
+    "bindings": "1.2.1",
     "bluebird": "3.4.6",
     "body-parser": "1.15.2",
     "compression": "1.6.2",
     "cors": "2.8.1",
     "debug": "2.2.0",
     "elasticsearch": "11.0.1",
+    "eventemitter2": "2.1.3",
     "express": "4.14.0",
     "m3u": "0.0.2",
     "moment": "2.15.1",
+    "nan": "2.4.0",
     "nconf": "0.8.4",
+    "node-statsd": "0.1.1",
+    "on-headers": "1.0.1",
     "sm-waveform": "0.1.0",
     "streammachine": "0.7.1",
     "temp": "0.8.3",
@@ -42,7 +47,9 @@
     "docker:start": "npm run docker -- npm start",
     "docker:start:debug": "npm run docker -- npm run start:debug",
     "docker:start:debug:testing": "npm run docker:start:debug -- -- --config config/testing.json",
-    "docker:build": "docker build -t 'sm-archiver' ."
+    "docker:build": "docker build -t 'sm-archiver' .",
+    "compile:v8": "cd src/archiver/monitors/v8 && node-gyp rebuild && cd ../../../..",
+    "docker:compile:v8": "npm run docker -- npm run compile:v8"
   },
   "bin": {
     "sm-archiver": "./runner-cmd"

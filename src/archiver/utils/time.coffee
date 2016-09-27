@@ -1,0 +1,45 @@
+NANOSECOND_IN_MILLISECONDS = 1e-6
+MILLISECOND = 1
+SECOND = 1e3
+SECOND_IN_NANOSECONDS = 1e9
+MINUTE_IN_SECONDS = 60
+MINUTE = MINUTE_IN_SECONDS * SECOND
+HALF_MINUTE = MINUTE / 2
+HOUR_IN_MINUTES = 60
+HOUR = HOUR_IN_MINUTES * MINUTE
+DAY_IN_HOURS = 24
+DAY = DAY_IN_HOURS * HOUR
+MONTH_IN_DAYS = 30
+MONTH = MONTH_IN_DAYS * DAY
+YEAR_IN_MONTHS = 12
+YEAR = YEAR_IN_MONTHS * MONTH
+
+tupleToNanoseconds = (tuple) ->
+    tuple[0] * SECOND_IN_NANOSECONDS + tuple[1]
+
+tupleToMilliseconds = (tuple) ->
+    tuple[0] * SECOND + tuple[1] * NANOSECOND_IN_MILLISECONDS
+
+tupleDiff = (start, end) ->
+    [end[0] - start[0], end[1] - start[1]]
+
+module.exports = {
+    NANOSECOND_IN_MILLISECONDS,
+    MILLISECOND,
+    SECOND,
+    SECOND_IN_NANOSECONDS,
+    MINUTE,
+    MINUTE_IN_SECONDS,
+    HALF_MINUTE,
+    HOUR,
+    HOUR_IN_MINUTES,
+    DAY,
+    DAY_IN_HOURS,
+    MONTH,
+    MONTH_IN_DAYS,
+    YEAR,
+    YEAR_IN_MONTHS,
+    tupleToNanoseconds,
+    tupleToMilliseconds,
+    tupleDiff
+}

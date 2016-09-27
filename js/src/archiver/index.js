@@ -1,4 +1,4 @@
-var Archiver, Logger, Server, SlaveIO, StreamArchiver, debug,
+var Archiver, Logger, Monitors, Server, SlaveIO, StreamArchiver, debug,
   extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
   hasProp = {}.hasOwnProperty;
 
@@ -9,6 +9,8 @@ Logger = require("streammachine/js/src/streammachine/logger");
 StreamArchiver = require("./stream");
 
 Server = require("./server");
+
+Monitors = require("./monitors");
 
 debug = require("debug")("sm:archiver");
 
@@ -60,6 +62,7 @@ Archiver = (function(superClass) {
     this.server = new Server(this, this.options, this.log.child({
       component: "server"
     }));
+    this.monitors = new Monitors(this, this.server, this.options);
     debug("Created");
   }
 

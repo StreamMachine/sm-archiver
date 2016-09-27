@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "bindings.js",
+  "sourceRoot": "../../../../../src/archiver/monitors/v8/",
+  "sources": [
+    "bindings.coffee"
+  ],
+  "names": [],
+  "mappings": "AAAA,IAAA;;AAAA,QAAA,GAAW,OAAA,CAAQ,UAAR;;AAEX,MAAM,CAAC,OAAP,GAAiB,CAAA,SAAA,KAAA;SAAA,SAAC,OAAD,EAAU,OAAV;WACb,QAAA,CACI;MAAA,WAAA,EAAa,OAAb;MACA,QAAA,EAAU,OADV;KADJ;EADa;AAAA,CAAA,CAAA,CAAA,IAAA"
+}

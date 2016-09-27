@@ -1,6 +1,7 @@
 cors = require "cors"
 moment = require "moment"
 express = require "express"
+onHeaders = require "on-headers"
 bodyParser = require "body-parser"
 compression = require "compression"
 ClipExporter = require "./clip_exporter"
@@ -12,6 +13,13 @@ class Server
         @app.set "x-powered-by", "StreamMachine Archiver"
         @app.use cors(exposedHeaders: ["X-Archiver-Preview-Length", "X-Archiver-Filename"])
         @app.options "*", cors()
+
+        @app.use (req, res, next) =>
+            req.startTime = process.hrtime()
+            onHeaders res, ->
+                @startTime = process.hrtime()
+            next()
+
         @app.use (req, res, next) =>
             res.header("Access-Control-Allow-Origin", "*")
             res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
