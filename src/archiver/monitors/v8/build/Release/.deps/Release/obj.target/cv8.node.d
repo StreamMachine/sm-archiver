@@ -1,1 +1,0 @@
-cmd_Release/obj.target/cv8.node := g++ -shared -pthread -rdynamic -m64  -Wl,-soname=cv8.node -o Release/obj.target/cv8.node -Wl,--start-group Release/obj.target/cv8/src/init.o Release/obj.target/cv8/src/cv8.o -Wl,--end-group 

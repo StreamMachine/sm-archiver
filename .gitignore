@@ -1,2 +1,8 @@
 node_modules
 .idea
+
+#v8
+**/v8/build
+
+#config
+config/testing.json
