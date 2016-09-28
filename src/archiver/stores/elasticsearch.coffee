@@ -94,8 +94,12 @@ class ElasticsearchStore
                     }
                 }
             }
-        }) \
-        .then((result) => P.map(result.hits.hits, (hit) => if attribute then hit._source?[attribute] else hit._source)) \
+        })
+        .then((result) =>
+            P.map(result.hits.hits, (hit) =>
+                if attribute then hit._source?[attribute] else hit._source
+            )
+        )
         .catch (error) =>
             debug "SEARCH #{attribute or type} Error for #{@stream.key}: #{error}"
 

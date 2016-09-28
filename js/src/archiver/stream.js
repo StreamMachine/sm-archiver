@@ -132,13 +132,11 @@ StreamArchiver = (function(superClass) {
     if (!this.stores.elasticsearch) {
       return cb();
     }
-    return this.stores.elasticsearch.getSegments(options)["catch"](function() {
-      return [];
-    }).then((function(_this) {
-      return function(segments) {
-        return cb(null, segments);
-      };
-    })(this));
+    return this.stores.elasticsearch.getSegments(options).then(function(segments) {
+      return cb(null, segments);
+    })["catch"](function() {
+      return cb();
+    });
   };
 
   StreamArchiver.prototype.getSegment = function(id, cb) {

@@ -93,9 +93,9 @@ class StreamArchiver extends require("events").EventEmitter
 
     getSegmentsFromElasticsearch: (options, cb) ->
         return cb() if !@stores.elasticsearch
-        @stores.elasticsearch.getSegments(options) \
-        .catch(() -> [])
-        .then((segments) => cb null, segments)
+        @stores.elasticsearch.getSegments(options)
+        .then((segments) -> return cb null, segments)
+        .catch(() -> cb())
 
     #----------
 
@@ -115,8 +115,8 @@ class StreamArchiver extends require("events").EventEmitter
 
     getSegmentFromElasticsearch: (id, cb) ->
         return cb() if !@stores.elasticsearch
-        @stores.elasticsearch.getSegment(id) \
-        .then((segment) -> return cb null, segment) \
+        @stores.elasticsearch.getSegment(id)
+        .then((segment) -> return cb null, segment)
         .catch(() -> cb())
 
     #----------
