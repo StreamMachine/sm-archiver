@@ -1,8 +1,10 @@
-var HlsOutput, _, debug, m3u;
+var HlsOutput, _, debug, m3u, moment;
 
 m3u = require("m3u");
 
 _ = require("underscore");
+
+moment = require("moment");
 
 debug = require("debug")("sm:archiver:outputs:hls");
 
@@ -18,7 +20,7 @@ HlsOutput = (function() {
   }
 
   HlsOutput.prototype.append = function(segments) {
-    if (!segments.length) {
+    if (!segments.length || this.ended) {
       return this;
     }
     if (!this.length) {
@@ -27,15 +29,23 @@ HlsOutput = (function() {
       this.comment("EXT-X-INDEPENDENT-SEGMENTS");
     }
     _.each(segments, function(segment) {
+      var ts;
       if (this.length === this.max) {
         return;
       }
-      this.programDateTime(segment.ts.toISOString());
+      ts = moment.isMoment(segment.ts) ? segment.ts : moment(segment.ts);
+      this.programDateTime(ts.toISOString());
       this.file("/" + this.stream.key + "/ts/" + segment.id + "." + this.stream.opts.format, segment.duration / 1000);
       return this.length++;
     }, this);
-    this.endlist();
     debug("Current length for " + this.stream.key + " is " + this.length);
+    return this;
+  };
+
+  HlsOutput.prototype.end = function() {
+    this.ended = true;
+    this.endlist();
+    debug("Ended for " + this.stream.key);
     return this;
   };
 

@@ -369,9 +369,14 @@ StreamArchiver = (function(superClass) {
   };
 
   StreamArchiver.prototype.generateHls = function(segments, cb) {
-    var hls;
+    var error, error1, hls;
     hls = new HlsOutput(this.stream);
-    return cb(null, hls.append(segments));
+    try {
+      return cb(null, hls.append(segments, true).end());
+    } catch (error1) {
+      error = error1;
+      return cb(error);
+    }
   };
 
   return StreamArchiver;
