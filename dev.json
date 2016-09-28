@@ -1,9 +1,0 @@
-{
-  "waveform": "/Users/eric/projects/Stream/forks/waveform/waveform",
-  "master": {
-    "master": "ws://127.0.0.1:8003?password=abc123"
-  },
-  "port": 8005,
-  "pixels_per_second": 20,
-  "preview_width": 1500
-}
