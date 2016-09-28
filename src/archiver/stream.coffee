@@ -257,7 +257,7 @@ class StreamArchiver extends require("events").EventEmitter
     generateHls: (segments, cb) ->
         hls = new HlsOutput @stream
         try
-            cb null, hls.append(segments, true).end()
+            cb null, hls.append(segments).end()
         catch error
             cb error
 

@@ -25,7 +25,6 @@ HlsOutput = (function() {
     }
     if (!this.length) {
       this.mediaSequence(_.first(segments).id);
-      this.comment("EXT-X-DISCONTINUITY-SEQUENCE:3");
       this.comment("EXT-X-INDEPENDENT-SEGMENTS");
     }
     _.each(segments, function(segment) {
@@ -34,7 +33,7 @@ HlsOutput = (function() {
         return;
       }
       ts = moment.isMoment(segment.ts) ? segment.ts : moment(segment.ts);
-      this.programDateTime(ts.toISOString());
+      this.programDateTime(ts.format());
       this.file("/" + this.stream.key + "/ts/" + segment.id + "." + this.stream.opts.format, segment.duration / 1000);
       return this.length++;
     }, this);

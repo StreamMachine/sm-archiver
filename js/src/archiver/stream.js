@@ -372,7 +372,7 @@ StreamArchiver = (function(superClass) {
     var error, error1, hls;
     hls = new HlsOutput(this.stream);
     try {
-      return cb(null, hls.append(segments, true).end());
+      return cb(null, hls.append(segments).end());
     } catch (error1) {
       error = error1;
       return cb(error);

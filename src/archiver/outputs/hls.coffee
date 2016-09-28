@@ -18,12 +18,11 @@ class HlsOutput
         return @ if not segments.length or @ended
         if not @length
             @mediaSequence _.first(segments).id
-            @comment "EXT-X-DISCONTINUITY-SEQUENCE:3"
             @comment "EXT-X-INDEPENDENT-SEGMENTS"
         _.each segments, (segment) ->
             return if @length == @max
             ts = if moment.isMoment segment.ts then segment.ts else moment(segment.ts)
-            @programDateTime ts.toISOString()
+            @programDateTime ts.format()
             @file "/#{@stream.key}/ts/#{segment.id}.#{@stream.opts.format}", segment.duration / 1000
             @length++
         , @
