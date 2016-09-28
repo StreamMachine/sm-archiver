@@ -87,10 +87,10 @@ Server = (function() {
             });
           } else {
             hlsString = hls.toString();
-            res.type("application/vnd.apple.mpegurl");
+            res.set("Content-Type", "application/vnd.apple.mpegurl");
             res.set("Content-Length", hlsString.length);
             res.set("X-Archiver-Hls-Length", hls.length);
-            return res.send(hlsString);
+            return res.send(new Buffer(hlsString));
           }
         });
       };

@@ -88,7 +88,7 @@ class Graphite
         "#{HOSTNAME}#{SEPARATOR}#{string}".toLowerCase()
 
     mock: (method, metric, value, options) ->
-        if @opts.mock
+        if @opts.debug
             debug("Graphite #{method} #{metric} #{value} #{options.sampleRate} #{options.tags.join(@TAGS_SEPARATOR)}")
 
 module.exports = Graphite

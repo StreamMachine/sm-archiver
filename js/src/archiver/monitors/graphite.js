@@ -120,7 +120,7 @@ Graphite = (function() {
   };
 
   Graphite.prototype.mock = function(method, metric, value, options) {
-    if (this.opts.mock) {
+    if (this.opts.debug) {
       return debug("Graphite " + method + " " + metric + " " + value + " " + options.sampleRate + " " + (options.tags.join(this.TAGS_SEPARATOR)));
     }
   };

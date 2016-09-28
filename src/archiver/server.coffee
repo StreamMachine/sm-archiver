@@ -44,10 +44,10 @@ class Server
                     res.status(404).json status: 404, error: "Hls not found"
                 else
                     hlsString = hls.toString()
-                    res.type "application/vnd.apple.mpegurl"
+                    res.set "Content-Type", "application/vnd.apple.mpegurl"
                     res.set "Content-Length", hlsString.length
                     res.set "X-Archiver-Hls-Length", hls.length
-                    res.send hlsString
+                    res.send new Buffer hlsString
 
         @app.get "/:stream/ts/:segment.(:format)", (req, res) =>
             if not req.stream.archiver
